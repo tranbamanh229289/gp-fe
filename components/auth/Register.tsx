@@ -1,6 +1,6 @@
 import { AuthMode, AuthRole, RegisterStep } from "@/constants/auth";
 import { generateBabyJubWallet } from "@/helper/babyjub";
-import { useIdentityStateStore } from "@/store/identity.store";
+import { useIdentityStore } from "@/store/identity.store";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     AlertCircle,
@@ -30,7 +30,7 @@ export function Register({ setMode }: RegisterProp) {
     // Registration states
     const [role, setRole] = useState<AuthRole>(AuthRole.Holder);
     const [registerStep, setRegisterStep] = useState<RegisterStep>(
-        RegisterStep.role
+        RegisterStep.Role
     );
 
     const [showPrivateKeyGenerated, setShowPrivateKeyGenerated] =
@@ -43,15 +43,16 @@ export function Register({ setMode }: RegisterProp) {
     const [nameError, setNameError] = useState<string>("");
 
     const [didCopied, setDIDCopied] = useState(false);
-    const did = useIdentityStateStore((state) => state.did);
+
     const [isCreateEntityLoading, setIsCreateEntityLoading] = useState(false);
-    const state = useIdentityStateStore((state) => state.state);
+
+    const { did, state } = useIdentityStore();
 
     // Method register
     const resetRegisterState = () => {
         setMode(AuthMode.Login);
         setRole(AuthRole.Holder);
-        setRegisterStep(RegisterStep.role);
+        setRegisterStep(RegisterStep.Role);
         setShowPrivateKeyGenerated(false);
         setPrivateKeyCopied(false);
         setPrivateKeyGenerated("");
@@ -69,14 +70,14 @@ export function Register({ setMode }: RegisterProp) {
     };
 
     const back = () => {
-        setRegisterStep(RegisterStep.role);
+        setRegisterStep(RegisterStep.Role);
         setShowPrivateKeyGenerated(false);
         setPrivateKeyCopied(false);
         setPrivateKeyGenerated("");
         setNameCopied(false);
     };
 
-    const register = useIdentityStateStore((state) => state.register);
+    const register = useIdentityStore((state) => state.register);
 
     const generateIdentity = async () => {
         if (name === "") {
@@ -84,7 +85,7 @@ export function Register({ setMode }: RegisterProp) {
         } else {
             const babyJub = await generateBabyJubWallet();
             setPrivateKeyGenerated(babyJub.privateKey);
-            setRegisterStep(RegisterStep.wallet);
+            setRegisterStep(RegisterStep.Wallet);
         }
     };
 
@@ -93,7 +94,7 @@ export function Register({ setMode }: RegisterProp) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await register(privateKeyGenerated, name, role);
         setIsCreateEntityLoading(false);
-        setRegisterStep(RegisterStep.identity);
+        setRegisterStep(RegisterStep.Identity);
     };
 
     const copyToClipboard = (text: string, type: string) => {
@@ -177,7 +178,7 @@ export function Register({ setMode }: RegisterProp) {
             className="max-w-5xl mx-auto"
         >
             <AnimatePresence mode="wait">
-                {registerStep === RegisterStep.role && (
+                {registerStep === RegisterStep.Role && (
                     <motion.div
                         key="role-selection"
                         initial={{ opacity: 0, x: -20 }}
@@ -411,7 +412,7 @@ export function Register({ setMode }: RegisterProp) {
                     </motion.div>
                 )}
 
-                {registerStep === RegisterStep.wallet && (
+                {registerStep === RegisterStep.Wallet && (
                     <motion.div
                         key="wallet-generated"
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -627,7 +628,7 @@ export function Register({ setMode }: RegisterProp) {
                     </motion.div>
                 )}
 
-                {registerStep === RegisterStep.identity && (
+                {registerStep === RegisterStep.Identity && (
                     <motion.div
                         key="identity-created"
                         initial={{ opacity: 0, scale: 0.95 }}

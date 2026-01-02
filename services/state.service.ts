@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import abi from "../abi/stateABI.json";
 import { Wallet } from "ethers";
-import { MerkleTreeProof } from "@/types/proof";
+import { MerkleTreeProof } from "@/types/auth_zkproof";
 
 export class StateService {
     private provider: ethers.Provider;

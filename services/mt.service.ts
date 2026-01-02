@@ -25,7 +25,7 @@ import { Hash, InMemoryDB, Merkletree, str2Bytes } from "@iden3/js-merkletree";
 import { Signature } from "@zk-kit/eddsa-poseidon";
 import { StateService } from "./state.service";
 import * as snarkjs from "snarkjs";
-import { MerkleTreeProof } from "@/types/proof";
+import { MerkleTreeProof } from "@/types/auth_zkproof";
 
 class MTService {
     private wallet: BabyJubWallet;

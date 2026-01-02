@@ -5,18 +5,19 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import axiosInstance from "@/lib/axios";
 import { AuthRole } from "@/constants/auth";
-import { IdentityStateResponse } from "@/types/auth";
-import { ZKProof } from "@/types/proof";
-import { useZkProofStore } from "./zkproof.store";
+import { Identity } from "@/types/auth";
+import { ZKProof } from "@/types/auth_zkproof";
+import { useAuthZkProofStore } from "./auth_zkproof.store";
 
-interface IdentityStateStore {
-    publicID: string;
+interface IdentityStore {
+    id: string;
     publicKeyX: string;
     publicKeyY: string;
     did: string;
     state: string;
     role: AuthRole;
     name: string;
+
     loading: boolean;
     error: string;
 
@@ -25,14 +26,14 @@ interface IdentityStateStore {
         name: string,
         role: AuthRole
     ) => Promise<void>;
-    login: (proof: ZKProof) => Promise<void>;
+    login: (proof: ZKProof) => Promise<AuthRole>;
     logout: () => void;
 }
 
-export const useIdentityStateStore = create<IdentityStateStore>()(
+export const useIdentityStore = create<IdentityStore>()(
     persist(
         (set, get) => ({
-            publicID: "",
+            id: "",
             publicKeyX: "",
             publicKeyY: "",
             role: AuthRole.Holder,
@@ -61,10 +62,10 @@ export const useIdentityStateStore = create<IdentityStateStore>()(
                     name: name,
                     role: role,
                 };
-                console.log("request", request);
+
                 try {
                     const response = await axiosInstance.post<{
-                        data: IdentityStateResponse;
+                        data: Identity;
                     }>("/authzk/register", request);
 
                     set({
@@ -79,12 +80,12 @@ export const useIdentityStateStore = create<IdentityStateStore>()(
                 }
             },
 
-            login: async (proof: ZKProof): Promise<void> => {
-                const res: IdentityStateResponse = await useZkProofStore
+            login: async (proof: ZKProof): Promise<AuthRole> => {
+                const res: Identity = await useAuthZkProofStore
                     .getState()
                     .verify(proof);
                 set({
-                    publicID: res.publicID,
+                    id: res.id,
                     publicKeyX: res.publicKeyX,
                     publicKeyY: res.publicKeyY,
                     role: res.role,
@@ -92,12 +93,13 @@ export const useIdentityStateStore = create<IdentityStateStore>()(
                     state: res.state,
                     name: res.name,
                 });
+                return res.role;
             },
 
             logout: () => {
                 localStorage.removeItem("pk");
                 set({
-                    publicID: "",
+                    id: "",
                     publicKeyX: "",
                     publicKeyY: "",
                     role: AuthRole.Holder,
@@ -109,12 +111,13 @@ export const useIdentityStateStore = create<IdentityStateStore>()(
         {
             name: "identity_store",
             partialize: (state) => ({
-                PublicID: state.publicID,
+                id: state.id,
                 publicKeyX: state.publicKeyX,
                 publicKeyY: state.publicKeyY,
                 role: state.role,
                 did: state.did,
                 state: state.state,
+                name: state.name,
             }),
         }
     )

@@ -1,9 +1,9 @@
 "use client";
 import { AuthMode, LoginStep } from "@/constants/auth";
 import { generateQRCodeSVG } from "@/helper/qrcode";
-import { useIdentityStateStore } from "@/store/identity.store";
-import { useZkProofStore } from "@/store/zkproof.store";
-import { ProofData, ZKProof } from "@/types/proof";
+import { useIdentityStore } from "@/store/identity.store";
+import { useAuthZkProofStore } from "@/store/auth_zkproof.store";
+import { ProofData, ZKProof } from "@/types/auth_zkproof";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     AlertCircle,
@@ -23,6 +23,7 @@ import {
     Zap,
     ArrowLeft,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface LoginProps {
@@ -34,9 +35,10 @@ export default function Login({ setMode }: LoginProps) {
     const [showPrivateKeyInput, setShowPrivateKeyInput] = useState(false);
     const [privateKeyInput, setPrivateKeyInput] = useState<string>("");
     const [zkLoginStep, setZkLoginStep] = useState<LoginStep>(
-        LoginStep.challenge
+        LoginStep.Challenge
     );
 
+    console.log(zkLoginStep);
     const [zkProof, setZkProof] = useState<ProofData>({
         pi_a: [],
         pi_b: [],
@@ -48,26 +50,22 @@ export default function Login({ setMode }: LoginProps) {
 
     const [isChallengeLoading, setIsChallengeLoading] = useState(false);
     const [isProofLoading, setIsProofLoading] = useState(false);
-    const [isProofGenerated, setIsProofGenerated] = useState(false);
     const [isSendingProof, setIsSendingProof] = useState(false);
     const [error, setError] = useState<string>("");
 
-    const requestChallenge = useZkProofStore((state) => state.requestChallenge);
-    const generateProof = useZkProofStore((state) => state.generateProof);
-    const cancel = useZkProofStore((state) => state.cancel);
-    const challenge = useZkProofStore((state) => state.challenge);
-
-    const login = useIdentityStateStore((state) => state.login);
-    const role = useIdentityStateStore((state) => state.role);
+    // hook
+    const router = useRouter();
+    const { requestChallenge, generateProof, cancel, challenge } =
+        useAuthZkProofStore();
+    const { login } = useIdentityStore();
 
     // Step 1: Get challenge
     const handleCancel = () => {
-        setIsProofGenerated(false);
         setIsProofLoading(false);
         setPrivateKeyInput("");
         setShowQRCode(true);
         cancel();
-        setZkLoginStep(LoginStep.challenge); // hoặc step bắt đầu của bạn
+        setZkLoginStep(LoginStep.Challenge);
     };
 
     const handleGetChallenge = async () => {
@@ -75,7 +73,7 @@ export default function Login({ setMode }: LoginProps) {
         setError("");
         try {
             await requestChallenge();
-            setZkLoginStep(LoginStep.proof);
+            setZkLoginStep(LoginStep.Generate);
         } catch (err) {
             setError("Failed to get challenge");
         } finally {
@@ -98,12 +96,12 @@ export default function Login({ setMode }: LoginProps) {
         setError("");
 
         try {
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            await new Promise((resolve) => setTimeout(resolve, 5000));
             const result = await generateProof(privateKeyInput);
 
             setZkProof(result.proof);
             setPublicSignals(result.publicSignals);
-            setIsProofGenerated(true);
+            setZkLoginStep(LoginStep.Verify);
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : "Failed to generate proof"
@@ -114,40 +112,47 @@ export default function Login({ setMode }: LoginProps) {
     };
 
     // Step 3: Send proof to backend
-    const handleLogin = async () => {
+    const handleVerify = async () => {
         setIsSendingProof(true);
         setError("");
-        setZkLoginStep(LoginStep.verify);
 
         try {
             const proof: ZKProof = {
                 proof: zkProof,
                 pub_signals: publicSignals,
             };
-            await login(proof);
+            const roleAuth = await login(proof);
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            setZkLoginStep(LoginStep.Login);
             setTimeout(() => {
-                window.location.href = `/${role}`;
-            }, 1500);
+                router.push(`/${roleAuth}`);
+            }, 1000);
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : "Verification failed"
             );
-            setZkLoginStep(LoginStep.proof);
+            setZkLoginStep(LoginStep.Generate);
         } finally {
             setIsSendingProof(false);
+            setZkLoginStep(LoginStep.Challenge);
         }
     };
 
     const stepInfos = [
         {
-            step: LoginStep.challenge,
+            step: LoginStep.Challenge,
             label: "Request Challenge",
             icon: Lock,
             num: 1,
         },
-        { step: LoginStep.proof, label: "Generate Proof", icon: Key, num: 2 },
         {
-            step: LoginStep.verify,
+            step: LoginStep.Generate,
+            label: "Generate Proof",
+            icon: Key,
+            num: 2,
+        },
+        {
+            step: LoginStep.Verify,
             label: "Verify & Login",
             icon: CheckCircle2,
             num: 3,
@@ -199,9 +204,10 @@ export default function Login({ setMode }: LoginProps) {
                 <div className="flex items-center justify-center gap-6 mb-12">
                     {stepInfos.map((item, idx) => {
                         const currentIdx = [
-                            LoginStep.challenge,
-                            LoginStep.proof,
-                            LoginStep.verify,
+                            LoginStep.Challenge,
+                            LoginStep.Generate,
+                            LoginStep.Verify,
+                            LoginStep.Login,
                         ].indexOf(zkLoginStep);
                         const isActive = zkLoginStep === item.step;
                         const isCompleted = idx < currentIdx;
@@ -281,7 +287,7 @@ export default function Login({ setMode }: LoginProps) {
                 <AnimatePresence mode="wait">
                     <div className="space-y-6">
                         {/* Step 1: Request Challenge */}
-                        {!challenge && (
+                        {zkLoginStep === LoginStep.Challenge && (
                             <motion.div
                                 key="challenge-step"
                                 initial={{ opacity: 0, x: -20 }}
@@ -364,9 +370,8 @@ export default function Login({ setMode }: LoginProps) {
                         )}
 
                         {/* Step 2: Show Challenge & Generate Proof */}
-                        {challenge &&
-                            zkLoginStep === LoginStep.proof &&
-                            !isProofGenerated && (
+                        {zkLoginStep === LoginStep.Generate &&
+                            !isProofLoading && (
                                 <motion.div
                                     key="proof-generation"
                                     initial={{ opacity: 0, x: -20 }}
@@ -580,45 +585,43 @@ export default function Login({ setMode }: LoginProps) {
                                             </motion.div>
                                         )}
                                     </div>
-
-                                    {isProofLoading && !showQRCode && (
-                                        <motion.div
-                                            initial={{
-                                                opacity: 0,
-                                                scale: 0.95,
-                                            }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            className="bg-gradient-to-br from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-purple-500/30 rounded-2xl p-8 backdrop-blur-sm"
-                                        >
-                                            <div className="flex flex-col items-center text-center mb-6">
-                                                <motion.div
-                                                    animate={{ rotate: 360 }}
-                                                    transition={{
-                                                        duration: 2,
-                                                        repeat: Infinity,
-                                                        ease: "linear",
-                                                    }}
-                                                    className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center mb-4 shadow-lg shadow-purple-500/50"
-                                                >
-                                                    <Zap className="w-10 h-10 text-white" />
-                                                </motion.div>
-                                                <h3 className="text-2xl font-bold text-white mb-2">
-                                                    Generating Zero-Knowledge
-                                                    Proof
-                                                </h3>
-                                                <p className="text-purple-300/80">
-                                                    This may take 10-30 seconds.
-                                                    Please wait...
-                                                </p>
-                                            </div>
-                                        </motion.div>
-                                    )}
                                 </motion.div>
                             )}
+                        {isProofLoading && !showQRCode && (
+                            <motion.div
+                                initial={{
+                                    opacity: 0,
+                                    scale: 0.95,
+                                }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-gradient-to-br from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-purple-500/30 rounded-2xl p-8 backdrop-blur-sm"
+                            >
+                                <div className="flex flex-col items-center text-center mb-6">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{
+                                            duration: 2,
+                                            repeat: Infinity,
+                                            ease: "linear",
+                                        }}
+                                        className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center mb-4 shadow-lg shadow-purple-500/50"
+                                    >
+                                        <Zap className="w-10 h-10 text-white" />
+                                    </motion.div>
+                                    <h3 className="text-2xl font-bold text-white mb-2">
+                                        Generating Zero-Knowledge Proof
+                                    </h3>
+                                    <p className="text-purple-300/80">
+                                        This may take 10-30 seconds. Please
+                                        wait...
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
 
                         {/* Step 2.5: Proof Generated Successfully */}
-                        {isProofGenerated &&
-                            zkLoginStep === LoginStep.proof && (
+                        {zkLoginStep === LoginStep.Verify &&
+                            !isSendingProof && (
                                 <motion.div
                                     key="proof-success"
                                     initial={{ opacity: 0, scale: 0.9 }}
@@ -727,18 +730,18 @@ export default function Login({ setMode }: LoginProps) {
                                         transition={{ delay: 0.8 }}
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={handleLogin}
+                                        onClick={handleVerify}
                                         className="w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white text-lg font-bold shadow-2xl shadow-emerald-500/50 transition-all flex items-center justify-center gap-3"
                                     >
                                         <Send className="w-6 h-6" />
-                                        Login Now
+                                        Verify Now
                                         <ArrowRight className="w-6 h-6" />
                                     </motion.button>
                                 </motion.div>
                             )}
 
                         {/* Step 3: Verifying Proof */}
-                        {zkLoginStep === LoginStep.verify && isSendingProof && (
+                        {zkLoginStep === LoginStep.Verify && isSendingProof && (
                             <motion.div
                                 key="verifying"
                                 initial={{ opacity: 0, scale: 0.95 }}
@@ -832,45 +835,44 @@ export default function Login({ setMode }: LoginProps) {
                         )}
 
                         {/* Step 3: Verification Success */}
-                        {zkLoginStep === LoginStep.verify &&
-                            !isSendingProof && (
-                                <motion.div
-                                    key="success"
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl p-8 backdrop-blur-sm"
-                                >
-                                    <div className="flex flex-col items-center text-center">
-                                        <motion.div
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            transition={{
-                                                type: "spring",
-                                                duration: 0.6,
-                                            }}
-                                            className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 shadow-2xl shadow-emerald-500/50"
-                                        >
-                                            <CheckCircle2 className="w-14 h-14 text-white" />
-                                        </motion.div>
-                                        <motion.h3
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.2 }}
-                                            className="text-3xl font-bold text-white mb-2"
-                                        >
-                                            Authentication Successful!
-                                        </motion.h3>
-                                        <motion.p
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ delay: 0.3 }}
-                                            className="text-emerald-200/80 text-lg"
-                                        >
-                                            Redirecting to dashboard...
-                                        </motion.p>
-                                    </div>
-                                </motion.div>
-                            )}
+                        {zkLoginStep === LoginStep.Login && (
+                            <motion.div
+                                key="success"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl p-8 backdrop-blur-sm"
+                            >
+                                <div className="flex flex-col items-center text-center">
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{
+                                            type: "spring",
+                                            duration: 0.6,
+                                        }}
+                                        className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 shadow-2xl shadow-emerald-500/50"
+                                    >
+                                        <CheckCircle2 className="w-14 h-14 text-white" />
+                                    </motion.div>
+                                    <motion.h3
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.2 }}
+                                        className="text-3xl font-bold text-white mb-2"
+                                    >
+                                        Authentication Successful!
+                                    </motion.h3>
+                                    <motion.p
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.3 }}
+                                        className="text-emerald-200/80 text-lg"
+                                    >
+                                        Redirecting to dashboard...
+                                    </motion.p>
+                                </div>
+                            </motion.div>
+                        )}
 
                         {/* Error Display */}
                         <AnimatePresence>
@@ -912,7 +914,7 @@ export default function Login({ setMode }: LoginProps) {
                             whileTap={{ scale: 0.98 }}
                             onClick={() => {
                                 setMode(AuthMode.Register);
-                                setZkLoginStep(LoginStep.challenge);
+                                setZkLoginStep(LoginStep.Challenge);
                                 setError("");
                             }}
                             className="w-full py-4 rounded-xl border-2 border-purple-500/30 hover:border-purple-500/50 bg-slate-800/30 hover:bg-slate-800/50 text-white font-semibold transition-all flex items-center justify-center gap-2"

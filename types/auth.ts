@@ -1,8 +1,8 @@
 import { AuthRole } from "@/constants/auth";
 import { Merkletree } from "@iden3/js-merkletree";
 
-export interface IdentityStateResponse {
-    publicID: string;
+export interface Identity {
+    id: string;
     publicKeyX: string;
     publicKeyY: string;
     did: string;
@@ -11,7 +11,7 @@ export interface IdentityStateResponse {
     name: string;
 }
 
-export interface ChallengeResponse {
+export interface Challenge {
     id: string;
     thid: string;
     typ: string;

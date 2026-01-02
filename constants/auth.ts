@@ -8,12 +8,13 @@ export enum AuthRole {
     Verifier = "verifier",
 }
 export enum RegisterStep {
-    role = "role",
-    wallet = "wallet",
-    identity = "identity",
+    Role = "role",
+    Wallet = "wallet",
+    Identity = "identity",
 }
 export enum LoginStep {
-    challenge = "challenge",
-    proof = "proof",
-    verify = "verify",
+    Challenge = "challenge",
+    Generate = "generate",
+    Verify = "verify",
+    Login = "login",
 }

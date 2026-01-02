@@ -1,12 +1,11 @@
 import axiosInstance from "@/lib/axios";
-import { check } from "@/services/check";
 import { createMTService } from "@/services/mt.service";
-import { ChallengeResponse, IdentityStateResponse } from "@/types/auth";
-import { ZKProof } from "@/types/proof";
+import { Challenge, Identity } from "@/types/auth";
+import { ZKProof } from "@/types/auth_zkproof";
 import { protocol } from "@iden3/js-iden3-auth";
 import { create } from "zustand";
 
-interface ZkProofStore {
+interface AuthZkProofStore {
     verifierDID: string;
     senderDID: string;
     requestID: string;
@@ -19,7 +18,7 @@ interface ZkProofStore {
     loading: boolean;
     error: string;
 
-    verify: (proof: ZKProof) => Promise<IdentityStateResponse>;
+    verify: (proof: ZKProof) => Promise<Identity>;
     requestChallenge: () => Promise<void>;
     generateProof: (privateKey: string) => Promise<{
         proof: snarkjs.Groth16Proof;
@@ -28,7 +27,7 @@ interface ZkProofStore {
     cancel: () => void;
 }
 
-export const useZkProofStore = create<ZkProofStore>()((set, get) => ({
+export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
     verifierDID: "",
     senderDID: "",
     requestID: "",
@@ -41,7 +40,7 @@ export const useZkProofStore = create<ZkProofStore>()((set, get) => ({
     loading: false,
     error: "",
 
-    verify: async (proof: ZKProof): Promise<IdentityStateResponse> => {
+    verify: async (proof: ZKProof): Promise<Identity> => {
         set({ loading: true });
         const verifierDID = get().verifierDID;
         const senderDID = get().senderDID;
@@ -70,11 +69,9 @@ export const useZkProofStore = create<ZkProofStore>()((set, get) => ({
                 },
             };
 
-            console.log(req);
             const res = await axiosInstance.post<{
-                data: IdentityStateResponse;
+                data: Identity;
             }>(callbackURL, req);
-            console.log(res);
             set({ isVerified: true });
             return res.data.data;
         } catch (err: any) {
@@ -129,7 +126,7 @@ export const useZkProofStore = create<ZkProofStore>()((set, get) => ({
         set({ loading: true, error: "" });
         try {
             const response = await axiosInstance.get<{
-                data: ChallengeResponse;
+                data: Challenge;
             }>("/authzk/challenge");
             set({
                 verifierDID: response.data.data.from,
