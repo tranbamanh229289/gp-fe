@@ -36,7 +36,7 @@ export default function Overview({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
+            className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
         >
             {/* Header */}
             <div>

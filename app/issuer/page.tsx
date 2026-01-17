@@ -4,16 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Building2,
-    FileText,
-    Award,
-    Settings,
     Shield,
-    Clock,
-    Fingerprint,
-    GraduationCap,
-    Heart,
-    Car,
-    Plane,
     Copy,
     LogOut,
     User,
@@ -28,95 +19,28 @@ import {
     IssuerItemSelectedType,
     IssuerModal,
     IssuerNullType,
+    navigationItems,
 } from "@/constants/issuer";
 import { IssuerItemSelected } from "@/types/issuer";
-import Schemas from "@/components/issuer/Schema";
-import Documents from "@/components/issuer/Document";
-import { DocumentType } from "@/constants/document";
 import { useIdentityStore } from "@/store/identity.store";
 import { useRouter } from "next/navigation";
+import Schemas from "@/components/issuer/Schema";
+import Documents from "@/components/issuer/Document";
 import CredentialRequest from "@/components/issuer/CredentialRequest";
 import VerifiableCredential from "@/components/issuer/VerifiableCredential";
 import SaveDocumentModal from "@/components/issuer/modal/SaveDocumentModal";
 import SaveSchemaModal from "@/components/issuer/modal/SaveSchemaModal";
 
-const credentialTypeConfig = {
-    [DocumentType.CitizenIdentity]: {
-        icon: Fingerprint,
-        label: "Citizen Identity",
-        color: "blue",
-        gradient: "from-blue-500 to-cyan-500",
-    },
-    [DocumentType.AcademicDegree]: {
-        icon: GraduationCap,
-        label: "Academic Degree",
-        color: "purple",
-        gradient: "from-purple-500 to-pink-500",
-    },
-    [DocumentType.HealthInsurance]: {
-        icon: Heart,
-        label: "Health Insurance",
-        color: "rose",
-        gradient: "from-rose-500 to-orange-500",
-    },
-    [DocumentType.DriverLicense]: {
-        icon: Car,
-        label: "Driver License",
-        color: "emerald",
-        gradient: "from-emerald-500 to-teal-500",
-    },
-    [DocumentType.Passport]: {
-        icon: Plane,
-        label: "Passport",
-        color: "amber",
-        gradient: "from-amber-500 to-yellow-500",
-    },
-};
-
-const navigationItems = [
-    {
-        id: "overview",
-        tab: IssuerActiveTab.Overview,
-        label: "Overview",
-        icon: Shield,
-    },
-    {
-        id: "documents",
-        tab: IssuerActiveTab.Documents,
-        label: "Documents",
-        icon: FileText,
-    },
-    {
-        id: "schemas",
-        tab: IssuerActiveTab.Schemas,
-        label: "Schemas",
-        icon: Settings,
-    },
-    {
-        id: "credential_offer",
-        tab: IssuerActiveTab.CredentialRequest,
-        label: "Credential Request",
-        icon: Clock,
-        badge: 1,
-    },
-    {
-        id: "verifiable_credential",
-        tab: IssuerActiveTab.VerifiableCredential,
-        label: "Verifiable Credential",
-        icon: Award,
-    },
-];
-
 export default function IssuerDashboard() {
     const [activeTab, setActiveTab] = useState<IssuerActiveTab>(
-        IssuerActiveTab.Overview
+        IssuerActiveTab.Overview,
     );
     const [showModal, setShowModal] = useState<IssuerModal>(IssuerModal.Null);
     const [copiedDID, setCopiedDID] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
     const [itemSelected, setItemSelected] = useState<IssuerItemSelected>(
-        {} as IssuerItemSelected
+        {} as IssuerItemSelected,
     );
 
     const [itemSelectedType, setItemSelectedType] =
@@ -124,11 +48,10 @@ export default function IssuerDashboard() {
 
     // hook
     const router = useRouter();
-    const { name, did, logout } = useIdentityStore();
-
-    const handleLogout = () => {
-        logout();
-        router.push("/auth");
+    const { logout, identity } = useIdentityStore();
+    const handleLogout = async () => {
+        await logout();
+        router.replace("/auth");
     };
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -173,14 +96,13 @@ export default function IssuerDashboard() {
                         <div className="hidden lg:flex items-center gap-3">
                             <div className="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
                                 <p className="text-xs text-emerald-600 font-medium">
-                                    Issued:{" "}
-                                    <span className="font-bold">127</span>
+                                    Issued: <span className="font-bold">0</span>
                                 </p>
                             </div>
                             <div className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200">
                                 <p className="text-xs text-amber-600 font-medium">
                                     Pending:{" "}
-                                    <span className="font-bold">5</span>
+                                    <span className="font-bold">0</span>
                                 </p>
                             </div>
                         </div>
@@ -207,13 +129,15 @@ export default function IssuerDashboard() {
                             >
                                 <div className="relative">
                                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
-                                        {name?.charAt(0).toUpperCase() || "A"}
+                                        {identity?.name
+                                            ?.charAt(0)
+                                            .toUpperCase() || "A"}
                                     </div>
                                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
                                 </div>
                                 <div className="text-left hidden md:block">
                                     <p className="text-sm font-bold text-gray-900">
-                                        {name || "Admin User"}
+                                        {identity?.name || "Admin User"}
                                     </p>
                                     <p className="text-xs text-gray-600">
                                         Issuer
@@ -263,7 +187,7 @@ export default function IssuerDashboard() {
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative">
                                                         <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-bold border-2 border-white/30">
-                                                            {name
+                                                            {identity?.name
                                                                 ?.charAt(0)
                                                                 .toUpperCase() ||
                                                                 "A"}
@@ -272,7 +196,7 @@ export default function IssuerDashboard() {
                                                     </div>
                                                     <div className="flex-1">
                                                         <p className="text-lg font-bold text-white mb-1">
-                                                            {name ||
+                                                            {identity?.name ||
                                                                 "Admin User"}
                                                         </p>
                                                         <p className="text-sm text-blue-100 flex items-center gap-1">
@@ -298,7 +222,8 @@ export default function IssuerDashboard() {
                                                         }}
                                                         onClick={() =>
                                                             copyToClipboard(
-                                                                did || ""
+                                                                identity?.did ||
+                                                                    "",
                                                             )
                                                         }
                                                         className="px-2 py-1 rounded-lg bg-white hover:bg-blue-100 border border-blue-200 transition-colors flex items-center gap-1"
@@ -320,10 +245,10 @@ export default function IssuerDashboard() {
                                                         )}
                                                     </motion.button>
                                                 </div>
-                                                {did ? (
+                                                {identity?.did ? (
                                                     <div className="bg-white rounded-lg p-3 border border-blue-200">
                                                         <p className="text-xs font-mono text-gray-800 break-all leading-relaxed">
-                                                            {did}
+                                                            {identity?.did}
                                                         </p>
                                                     </div>
                                                 ) : (
@@ -391,11 +316,11 @@ export default function IssuerDashboard() {
                                         />
                                         <span>{item.label}</span>
                                     </div>
-                                    {item.badge && item.badge > 0 && (
+                                    {/* {item.badge && item.badge > 0 && (
                                         <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">
                                             {item.badge}
                                         </span>
-                                    )}
+                                    )} */}
                                 </motion.button>
                             );
                         })}
@@ -431,7 +356,6 @@ export default function IssuerDashboard() {
                             <Documents
                                 showModal={showModal}
                                 itemSelected={itemSelected}
-                                credentialTypeConfig={credentialTypeConfig}
                                 setItemSelected={setItemSelected}
                                 setItemSelectedType={setItemSelectedType}
                                 setShowModal={setShowModal}
@@ -440,19 +364,19 @@ export default function IssuerDashboard() {
                         {activeTab === IssuerActiveTab.Schemas && (
                             <Schemas
                                 showModal={showModal}
-                                credentialTypeConfig={credentialTypeConfig}
                                 setShowModal={setShowModal}
                             />
                         )}
                         {activeTab === IssuerActiveTab.CredentialRequest && (
                             <CredentialRequest
-                                credentialTypeConfig={credentialTypeConfig}
+                                showModal={showModal}
                                 setShowModal={setShowModal}
                             />
                         )}
                         {activeTab === IssuerActiveTab.VerifiableCredential && (
                             <VerifiableCredential
-                                credentialTypeConfig={credentialTypeConfig}
+                                showModal={showModal}
+                                setShowModal={setShowModal}
                             />
                         )}
                     </AnimatePresence>
@@ -468,8 +392,7 @@ export default function IssuerDashboard() {
                             setShowModal={setShowModal}
                         />
                     )}
-                    {(showModal === IssuerModal.CreateSchema ||
-                        showModal === IssuerModal.EditSchema) && (
+                    {showModal === IssuerModal.CreateSchema && (
                         <SaveSchemaModal
                             showModal={showModal}
                             setShowModal={setShowModal}

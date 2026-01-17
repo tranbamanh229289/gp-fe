@@ -1,6 +1,6 @@
 import axiosInstance from "@/lib/axios";
 import { createMTService } from "@/services/mt.service";
-import { Challenge, Identity } from "@/types/auth";
+import { Challenge, Identity, LoginResponse } from "@/types/auth";
 import { ZKProof } from "@/types/auth_zkproof";
 import { protocol } from "@iden3/js-iden3-auth";
 import { create } from "zustand";
@@ -18,7 +18,7 @@ interface AuthZkProofStore {
     loading: boolean;
     error: string;
 
-    verify: (proof: ZKProof) => Promise<Identity>;
+    verify: (proof: ZKProof) => Promise<LoginResponse>;
     requestChallenge: () => Promise<void>;
     generateProof: (privateKey: string) => Promise<{
         proof: snarkjs.Groth16Proof;
@@ -40,7 +40,7 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
     loading: false,
     error: "",
 
-    verify: async (proof: ZKProof): Promise<Identity> => {
+    verify: async (proof: ZKProof): Promise<LoginResponse> => {
         set({ loading: true });
         const verifierDID = get().verifierDID;
         const senderDID = get().senderDID;
@@ -70,7 +70,7 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
             };
 
             const res = await axiosInstance.post<{
-                data: Identity;
+                data: LoginResponse;
             }>(callbackURL, req);
             set({ isVerified: true });
             return res.data.data;
@@ -92,7 +92,6 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
         try {
             const mtService = await createMTService(privateKey);
             const { did } = await mtService.getIdentityInfo();
-            console.log(did);
             set({ senderDID: did.string() });
             const challenge = get().challenge;
             if (!challenge || challenge === 0) {
@@ -105,8 +104,6 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
             const { proof, publicSignals } = await mtService.generateZKProof(
                 inputs
             );
-            console.log("proof", proof);
-            console.log("publicSignals", publicSignals);
             return { proof, publicSignals };
         } catch (err: any) {
             console.error("Generate proof failed:", err);
@@ -138,8 +135,8 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
                 message: response.data.data.body.message,
             });
         } catch (err) {
-            console.log(err);
             set({ error: "fetch_error" });
+            throw err;
         } finally {
             set({ loading: false });
         }

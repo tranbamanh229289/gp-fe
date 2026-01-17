@@ -1,10 +1,9 @@
 import { AuthRole } from "@/constants/auth";
+import { PublicKey } from "@/helper/babyjub";
 import { Merkletree } from "@iden3/js-merkletree";
 
 export interface Identity {
     id: string;
-    publicKeyX: string;
-    publicKeyY: string;
     did: string;
     state: string;
     role: AuthRole;
@@ -28,6 +27,24 @@ export interface Challenge {
             };
         }[];
     };
+}
+
+export interface Claim {
+    id: string;
+    did: string;
+    state: string;
+    role: AuthRole;
+    name: string;
+}
+
+export interface LoginResponse {
+    claims: Identity;
+    publicKey: PublicKey;
+    accessToken: string;
+}
+
+export interface RefreshTokenResponse {
+    accessToken: string;
 }
 
 export interface AuthV3CircuitInputs {

@@ -1,15 +1,12 @@
 import { useDocumentStore } from "@/store/document.store";
-import { useIdentityStore } from "@/store/identity.store";
+import { DocumentType, documentTypeFields } from "@/constants/document";
 import {
-    DegreeClassification,
-    DegreeType,
-    DocumentStatus,
-    DocumentType,
-    Gender,
-    PassportType,
-} from "@/constants/document";
-import { IssuerItemSelectedType, IssuerModal } from "@/constants/issuer";
-import { AnimatePresence, motion } from "framer-motion";
+    credentialTypeConfig,
+    documentTypes,
+    IssuerItemSelectedType,
+    IssuerModal,
+} from "@/constants/issuer";
+import { motion } from "framer-motion";
 import {
     AlertCircle,
     FileText,
@@ -22,227 +19,6 @@ import {
 import { useState } from "react";
 import { DocumentData } from "@/types/document";
 import { IssuerItemSelected } from "@/types/issuer";
-
-const documentTypeFields = [
-    {
-        type: DocumentType.CitizenIdentity,
-        icon: "🆔",
-        label: "Citizen Identity",
-        gradient: "from-blue-500 to-cyan-500",
-        bgColor: "bg-blue-50",
-        borderColor: "border-blue-200",
-        textColor: "text-blue-700",
-        ringColor: "ring-blue-500",
-        fields: [
-            {
-                name: "firstName",
-                label: "First Name",
-                type: "text",
-                required: true,
-            },
-            {
-                name: "lastName",
-                label: "Last Name",
-                type: "text",
-                required: true,
-            },
-
-            {
-                name: "dateOfBirth",
-                label: "Date of Birth",
-                type: "date",
-                required: true,
-            },
-
-            {
-                name: "placeOfBirth",
-                label: "Place of Birth",
-                type: "text",
-                required: true,
-            },
-            {
-                name: "gender",
-                label: "Gender",
-                type: "select",
-                options: Object.values(Gender),
-                required: true,
-            },
-            {
-                name: "status",
-                label: "Status",
-                type: "select",
-                options: Object.values(DocumentStatus),
-                required: true,
-            },
-
-            {
-                name: "issueDate",
-                label: "Issue Date",
-                type: "date",
-                required: true,
-            },
-            {
-                name: "expiryDate",
-                label: "Expire Date",
-                type: "date",
-                required: true,
-            },
-        ],
-    },
-    {
-        type: DocumentType.DriverLicense,
-        icon: "🚗",
-        label: "Driver License",
-        gradient: "from-green-500 to-emerald-500",
-        bgColor: "bg-green-50",
-        borderColor: "border-green-200",
-        textColor: "text-green-700",
-        ringColor: "ring-green-500",
-        fields: [
-            {
-                name: "class",
-                label: "License Class",
-                type: "text",
-                required: true,
-            },
-            {
-                name: "point",
-                label: "Points",
-                type: "number",
-                required: true,
-            },
-
-            {
-                name: "issueDate",
-                label: "Issue Date",
-                type: "date",
-                required: true,
-            },
-            {
-                name: "expiryDate",
-                label: "Expire Date",
-                type: "date",
-                required: true,
-            },
-        ],
-    },
-    {
-        type: DocumentType.AcademicDegree,
-        icon: "🎓",
-        label: "Academic Degree",
-        gradient: "from-purple-500 to-pink-500",
-        bgColor: "bg-purple-50",
-        borderColor: "border-purple-200",
-        textColor: "text-purple-700",
-        ringColor: "ring-purple-500",
-        fields: [
-            {
-                name: "degreeType",
-                label: "Degree Type",
-                type: "select",
-                options: Object.values(DegreeType),
-                required: true,
-            },
-            { name: "major", label: "Major", type: "text", required: true },
-            {
-                name: "university",
-                label: "University",
-                type: "text",
-                required: true,
-            },
-            { name: "gpa", label: "GPA", type: "number", required: true },
-            {
-                name: "graduateYear",
-                label: "Graduate Year",
-                type: "number",
-                required: true,
-            },
-            {
-                name: "classification",
-                label: "Classification",
-                type: "select",
-                options: Object.values(DegreeClassification),
-                required: true,
-            },
-        ],
-    },
-    {
-        type: DocumentType.HealthInsurance,
-        icon: "🏥",
-        label: "Health Insurance",
-        gradient: "from-red-500 to-rose-500",
-        bgColor: "bg-red-50",
-        borderColor: "border-red-200",
-        textColor: "text-red-700",
-        ringColor: "ring-red-500",
-        fields: [
-            {
-                name: "insuranceType",
-                label: "Insurance Type",
-                type: "text",
-                required: true,
-            },
-            {
-                name: "hospital",
-                label: "Hospital",
-                type: "text",
-                required: true,
-            },
-
-            {
-                name: "startDate",
-                label: "Start Date",
-                type: "date",
-                required: true,
-            },
-            {
-                name: "expiryDate",
-                label: "Expire Date",
-                type: "date",
-                required: true,
-            },
-        ],
-    },
-    {
-        type: DocumentType.Passport,
-        icon: "✈️",
-        label: "Passport",
-        gradient: "from-orange-500 to-amber-500",
-        bgColor: "bg-orange-50",
-        borderColor: "border-orange-200",
-        textColor: "text-orange-700",
-        ringColor: "ring-orange-500",
-        fields: [
-            {
-                name: "passportType",
-                label: "Passport Type",
-                type: "select",
-                options: Object.values(PassportType),
-                required: true,
-            },
-            {
-                name: "nationality",
-                label: "Nationality",
-                type: "text",
-                required: true,
-            },
-            { name: "mrz", label: "MRZ", type: "text", required: true },
-
-            {
-                name: "issueDate",
-                label: "Issue Date",
-                type: "date",
-                required: true,
-            },
-            {
-                name: "expiryDate",
-                label: "Expire Date",
-                type: "date",
-                required: true,
-            },
-        ],
-    },
-];
 
 interface SaveModalProps {
     itemSelected: IssuerItemSelected;
@@ -261,24 +37,22 @@ export default function SaveDocumentModal({
         itemSelectedType as DocumentType
     );
 
-    const [loading, setLoading] = useState<boolean>(false);
     const [formData, setFormData] = useState<IssuerItemSelected>(itemSelected);
-    const [holderDID, setHolderDID] = useState(itemSelected.holderDID);
+    const [holderDID, setHolderDID] = useState(itemSelected.holderDID ?? "");
 
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const currentConfig = documentTypeFields.find(
-        (t) => t.type === selectedType
-    )!;
+    const documentField = documentTypeFields[selectedType];
+    const configUI = credentialTypeConfig[selectedType];
 
-    const { did } = useIdentityStore();
-
-    const { create, update } = useDocumentStore();
+    const create = useDocumentStore((state) => state.create);
+    const update = useDocumentStore((state) => state.update);
+    const loading = useDocumentStore((state) => state.loading);
 
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
         if (!holderDID) newErrors.holderDID = "Holder DID is required";
 
-        currentConfig.fields.forEach((field) => {
+        documentField.forEach((field) => {
             if (field.required && !formData[field.name as keyof DocumentData]) {
                 newErrors[field.name] = `${field.label} is required`;
             }
@@ -290,11 +64,9 @@ export default function SaveDocumentModal({
 
     const handleSubmit = async () => {
         if (validateForm()) {
-            setLoading(true);
             const data = {
                 ...formData,
                 holderDID: holderDID,
-                issuerDID: did,
             };
             if (showModal == IssuerModal.CreateDocument) {
                 await create(selectedType as DocumentType, data);
@@ -307,8 +79,6 @@ export default function SaveDocumentModal({
                     );
                 }
             }
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            setLoading(false);
             setShowModal(IssuerModal.Null);
         }
     };
@@ -335,7 +105,7 @@ export default function SaveDocumentModal({
             >
                 {/* Header with Gradient */}
                 <div
-                    className={`relative bg-gradient-to-r ${currentConfig.gradient} p-8 overflow-hidden`}
+                    className={`relative bg-gradient-to-r ${configUI.gradient} p-8 overflow-hidden`}
                 >
                     <div className="absolute inset-0 bg-black/5"></div>
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
@@ -351,7 +121,9 @@ export default function SaveDocumentModal({
                                 }}
                                 className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl shadow-lg border border-white/30"
                             >
-                                {currentConfig.icon}
+                                {
+                                    <configUI.icon className="w-10 h-10 text-white" />
+                                }
                             </motion.div>
                             <div>
                                 <h3 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -362,7 +134,7 @@ export default function SaveDocumentModal({
                                     <Sparkles className="w-6 h-6" />
                                 </h3>
                                 <p className="text-white/90 mt-1 font-medium text-lg">
-                                    {currentConfig.label}
+                                    {configUI.label}
                                 </p>
                             </div>
                         </div>
@@ -389,68 +161,80 @@ export default function SaveDocumentModal({
                         >
                             <div className="flex items-center gap-2">
                                 <div
-                                    className={`w-1 h-6 rounded-full bg-gradient-to-b ${currentConfig.gradient}`}
+                                    className={`w-1 h-6 rounded-full bg-gradient-to-b ${configUI.gradient}`}
                                 ></div>
                                 <h4 className="text-lg font-bold text-gray-900">
                                     Select Document Type
                                 </h4>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                                {documentTypeFields.map((type, index) => (
-                                    <motion.button
-                                        key={type.type}
-                                        initial={{
-                                            opacity: 0,
-                                            scale: 0.8,
-                                        }}
-                                        animate={{
-                                            opacity: 1,
-                                            scale: 1,
-                                        }}
-                                        transition={{
-                                            delay: index * 0.05,
-                                        }}
-                                        whileHover={{
-                                            scale: 1.05,
-                                            y: -4,
-                                        }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => {
-                                            setSelectedType(type.type);
-                                            setFormData({} as DocumentData);
-                                        }}
-                                        className={`relative p-5 rounded-2xl border-2 transition-all duration-300 ${
-                                            selectedType === type.type
-                                                ? `bg-gradient-to-br ${type.gradient} text-white shadow-lg border-transparent`
-                                                : `${type.bgColor} ${type.borderColor} hover:shadow-md`
-                                        }`}
-                                    >
-                                        {selectedType === type.type && (
-                                            <motion.div
-                                                layoutId="selectedType"
-                                                className="absolute inset-0 bg-white/10 rounded-2xl"
-                                                transition={{
-                                                    type: "spring",
-                                                    damping: 20,
-                                                }}
-                                            />
-                                        )}
-                                        <div className="relative">
-                                            <div className="text-4xl mb-2">
-                                                {type.icon}
+                                {documentTypes.map((field, index) => {
+                                    const item = credentialTypeConfig[field];
+                                    return (
+                                        <motion.button
+                                            key={field}
+                                            initial={{
+                                                opacity: 0,
+                                                scale: 0.8,
+                                            }}
+                                            animate={{
+                                                opacity: 1,
+                                                scale: 1,
+                                            }}
+                                            transition={{
+                                                delay: index * 0.05,
+                                            }}
+                                            whileHover={{
+                                                scale: 1.05,
+                                                y: -4,
+                                            }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => {
+                                                setSelectedType(field);
+                                                setFormData({} as DocumentData);
+                                            }}
+                                            className={`relative p-5 rounded-2xl border-2 transition-all duration-300 ${
+                                                selectedType === field
+                                                    ? `bg-gradient-to-br ${item.gradient} text-white shadow-lg border-transparent`
+                                                    : `${item.bgColor} ${item.borderColor} hover:shadow-md`
+                                            }`}
+                                        >
+                                            {selectedType === field && (
+                                                <motion.div
+                                                    layoutId="selectedType"
+                                                    className="absolute inset-0 bg-white/10 rounded-2xl"
+                                                    transition={{
+                                                        type: "spring",
+                                                        damping: 20,
+                                                    }}
+                                                />
+                                            )}
+                                            <div className="relative flex">
+                                                <div className="text-4xl mb-2">
+                                                    {
+                                                        <item.icon
+                                                            className={`w-5 h-5 mr-1 ${
+                                                                selectedType ===
+                                                                field
+                                                                    ? "text-white"
+                                                                    : item.textColor
+                                                            }`}
+                                                        />
+                                                    }
+                                                </div>
+                                                <div
+                                                    className={`text-sm font-bold ${
+                                                        selectedType === field
+                                                            ? "text-white"
+                                                            : item.textColor
+                                                    }`}
+                                                >
+                                                    {item.label}
+                                                </div>
                                             </div>
-                                            <div
-                                                className={`text-sm font-bold ${
-                                                    selectedType === type.type
-                                                        ? "text-white"
-                                                        : type.textColor
-                                                }`}
-                                            >
-                                                {type.label}
-                                            </div>
-                                        </div>
-                                    </motion.button>
-                                ))}
+                                        </motion.button>
+                                    );
+                                })}
                             </div>
                         </motion.div>
                     )}
@@ -465,7 +249,7 @@ export default function SaveDocumentModal({
                         >
                             <div className="flex items-center gap-3">
                                 <div
-                                    className={`p-2 rounded-xl bg-gradient-to-br ${currentConfig.gradient}`}
+                                    className={`p-2 rounded-xl bg-gradient-to-br ${configUI.gradient}`}
                                 >
                                     <User className="w-5 h-5 text-white" />
                                 </div>
@@ -494,7 +278,7 @@ export default function SaveDocumentModal({
                                                     ? "border-red-400 bg-red-50"
                                                     : "border-gray-200 bg-white"
                                             } focus:ring-4 ${
-                                                currentConfig.ringColor
+                                                configUI.ringColor
                                             } focus:ring-opacity-20 focus:border-opacity-50 outline-none transition-all`}
                                         />
                                     ) : (
@@ -504,7 +288,7 @@ export default function SaveDocumentModal({
                                                     ? "border-red-400 bg-red-50"
                                                     : "border-gray-200 bg-white"
                                             } focus:ring-4 ${
-                                                currentConfig.ringColor
+                                                configUI.ringColor
                                             } focus:ring-opacity-20 focus:border-opacity-50 outline-none transition-all`}
                                         >
                                             {" "}
@@ -531,7 +315,7 @@ export default function SaveDocumentModal({
                     >
                         <div className="flex items-center gap-3">
                             <div
-                                className={`p-2 rounded-xl bg-gradient-to-br ${currentConfig.gradient}`}
+                                className={`p-2 rounded-xl bg-gradient-to-br ${configUI.gradient}`}
                             >
                                 <FileText className="w-5 h-5 text-white" />
                             </div>
@@ -540,7 +324,7 @@ export default function SaveDocumentModal({
                             </h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            {currentConfig.fields.map((field, index) => (
+                            {documentField.map((field, index) => (
                                 <motion.div
                                     key={field.name}
                                     initial={{
@@ -588,17 +372,21 @@ export default function SaveDocumentModal({
                                                     ? "border-red-400 bg-red-50"
                                                     : "border-gray-200 bg-white"
                                             } focus:ring-4 ${
-                                                currentConfig.ringColor
+                                                configUI.ringColor
                                             } focus:ring-opacity-20 focus:border-opacity-50 outline-none transition-all`}
                                         >
                                             <option value="" disabled>
                                                 Select {field.label}
                                             </option>
-                                            {field.options?.map((opt) => (
-                                                <option key={opt} value={opt}>
-                                                    {opt}
-                                                </option>
-                                            ))}
+                                            {field.options &&
+                                                field.options.map((opt) => (
+                                                    <option
+                                                        key={opt}
+                                                        value={opt}
+                                                    >
+                                                        {opt}
+                                                    </option>
+                                                ))}
                                         </select>
                                     ) : field.type === "date" ? (
                                         <div className="relative">
@@ -645,7 +433,7 @@ export default function SaveDocumentModal({
                                                         ? "border-red-400 bg-red-50"
                                                         : "border-gray-200 bg-white"
                                                 } focus:ring-4 ${
-                                                    currentConfig.ringColor
+                                                    configUI.ringColor
                                                 } focus:ring-opacity-20 focus:border-opacity-50 outline-none transition-all
                                                                 text-gray-700 font-medium
                                                                 [&::-webkit-calendar-picker-indicator]:cursor-pointer
@@ -695,7 +483,7 @@ export default function SaveDocumentModal({
                                                     ? "border-red-400 bg-red-50"
                                                     : "border-gray-200 bg-white"
                                             } focus:ring-4 ${
-                                                currentConfig.ringColor
+                                                configUI.ringColor
                                             } focus:ring-opacity-20 focus:border-opacity-50 outline-none transition-all`}
                                         />
                                     )}
@@ -727,7 +515,7 @@ export default function SaveDocumentModal({
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={handleSubmit}
-                            className={`flex-1 py-4 px-6 rounded-xl font-bold text-white shadow-lg transition-all bg-gradient-to-r ${currentConfig.gradient} hover:shadow-xl`}
+                            className={`flex-1 py-4 px-6 rounded-xl font-bold text-white shadow-lg transition-all bg-gradient-to-r ${configUI.gradient} hover:shadow-xl`}
                         >
                             <div className="flex items-center justify-center gap-2">
                                 {loading ? (

@@ -1,11 +1,11 @@
 export enum VerifierModal {
     Null = "null",
-    CreateRequest = "create_request",
-    ViewDetail = "view_detail",
+    CreateProofRequest = "create_proof_request",
+    DeleteProofRequest = "delete_proof_request",
+    ProofRequestDetail = "proof_request_detail",
 }
 
 export enum VerifierActiveTab {
-    Overview = "overview",
     ProofRequests = "proofRequests",
     Submissions = "submissions",
 }

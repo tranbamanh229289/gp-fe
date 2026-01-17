@@ -44,9 +44,8 @@ export function Register({ setMode }: RegisterProp) {
 
     const [didCopied, setDIDCopied] = useState(false);
 
-    const [isCreateEntityLoading, setIsCreateEntityLoading] = useState(false);
-
-    const { did, state } = useIdentityStore();
+    const identity = useIdentityStore((state) => state.identity);
+    const loading = useIdentityStore((state) => state.loading);
 
     // Method register
     const resetRegisterState = () => {
@@ -90,10 +89,7 @@ export function Register({ setMode }: RegisterProp) {
     };
 
     const createIdentity = async () => {
-        setIsCreateEntityLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
         await register(privateKeyGenerated, name, role);
-        setIsCreateEntityLoading(false);
         setRegisterStep(RegisterStep.Identity);
     };
 
@@ -105,11 +101,6 @@ export function Register({ setMode }: RegisterProp) {
         if (type === "privateKey") setPrivateKeyCopied(true);
         if (type === "name") setNameCopied(true);
         if (type === "did") setDIDCopied(true);
-        setTimeout(() => {
-            setPrivateKeyCopied(false);
-            setNameCopied(false);
-            setDIDCopied(false);
-        }, 2000);
     };
 
     const downloadPrivateKey = () => {
@@ -609,10 +600,10 @@ export function Register({ setMode }: RegisterProp) {
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={createIdentity}
-                                disabled={isCreateEntityLoading}
+                                disabled={loading}
                                 className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 hover:from-violet-600 hover:via-purple-600 hover:to-fuchsia-600 text-white font-semibold shadow-lg shadow-purple-500/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isCreateEntityLoading ? (
+                                {loading ? (
                                     <>
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                         Creating Identity...
@@ -715,7 +706,10 @@ export function Register({ setMode }: RegisterProp) {
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         onClick={() =>
-                                            copyToClipboard(did, "did")
+                                            copyToClipboard(
+                                                identity?.did as string,
+                                                "did"
+                                            )
                                         }
                                         className="text-purple-400 hover:text-purple-300 transition-colors"
                                     >
@@ -727,7 +721,7 @@ export function Register({ setMode }: RegisterProp) {
                                     </motion.button>
                                 </div>
                                 <p className="text-white font-mono text-sm break-all bg-slate-900/50 rounded-lg p-3 border border-purple-500/20">
-                                    {did}
+                                    {identity?.did}
                                 </p>
                             </motion.div>
 
@@ -743,7 +737,7 @@ export function Register({ setMode }: RegisterProp) {
                                     State Hash
                                 </span>
                                 <p className="text-white font-mono text-sm break-all bg-slate-900/50 rounded-lg p-3 border border-slate-700">
-                                    {state}
+                                    {identity?.state}
                                 </p>
                             </motion.div>
                         </div>

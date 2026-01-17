@@ -26,6 +26,7 @@ import { Signature } from "@zk-kit/eddsa-poseidon";
 import { StateService } from "./state.service";
 import * as snarkjs from "snarkjs";
 import { MerkleTreeProof } from "@/types/auth_zkproof";
+import { VerifiableCredential } from "@/types/verifiable_credential";
 
 class MTService {
     private wallet: BabyJubWallet;
@@ -54,19 +55,19 @@ class MTService {
         this.claimsTree = new Merkletree(
             new InMemoryDB(str2Bytes("")),
             true,
-            this.MTLevel
+            this.MTLevel,
         );
 
         this.revTree = new Merkletree(
             new InMemoryDB(str2Bytes("")),
             true,
-            this.MTLevel
+            this.MTLevel,
         );
 
         this.rootsTree = new Merkletree(
             new InMemoryDB(str2Bytes("")),
             true,
-            this.MTLevel
+            this.MTLevel,
         );
 
         this.stateService = new StateService();
@@ -78,7 +79,7 @@ class MTService {
         const typ = buildDIDType(
             DidMethod.PolygonId,
             Blockchain.Polygon,
-            NetworkId.Amoy
+            NetworkId.Amoy,
         );
         const state = await this.getState();
         this.did = DID.newFromIdenState(typ, state);
@@ -88,6 +89,12 @@ class MTService {
     private async updateRootsTree(): Promise<void> {
         const claimsRoot = await this.claimsTree.root();
         await this.rootsTree.add(claimsRoot.bigInt(), BigInt(1));
+    }
+
+    signClaim(claim: Claim): Signature {
+        const hiHv = claim.hiHv();
+        const messageHash = Poseidon.hash([hiHv.hi, hiHv.hv]);
+        return signPoseidon(messageHash, this.wallet.privateKey);
     }
 
     signPoseidon(message: bigint): Signature {
@@ -117,9 +124,9 @@ class MTService {
             schemaHash,
             ClaimOptions.withIndexDataInts(
                 BigInt(publicKey.x),
-                BigInt(publicKey.y)
+                BigInt(publicKey.y),
             ),
-            ClaimOptions.withRevocationNonce(BigInt(1))
+            ClaimOptions.withRevocationNonce(BigInt(1)),
         );
         return claim;
     }
@@ -158,7 +165,7 @@ class MTService {
     static async calculateState(
         claimsRoot: Hash,
         revRoot: Hash,
-        rootsRoot: Hash
+        rootsRoot: Hash,
     ): Promise<bigint> {
         const state = Poseidon.hash([
             claimsRoot.bigInt(),
@@ -180,7 +187,7 @@ class MTService {
     }
 
     async getAuthV3CircuitInput(
-        challenge: bigint
+        challenge: bigint,
     ): Promise<AuthV3CircuitInputs> {
         if (!this.initialized) {
             throw new Error("Circuit service must be initialized first!");
@@ -192,7 +199,7 @@ class MTService {
         const state = await MTService.calculateState(
             claimsRoot,
             revRoot,
-            rootsRoot
+            rootsRoot,
         );
 
         const id = this.getID();
@@ -202,11 +209,10 @@ class MTService {
         const authClaimProof = await this.getProof(authClaim, this.claimsTree);
         const authClaimNonRevProof = await this.getProof(
             authClaim,
-            this.revTree
+            this.revTree,
         );
 
         const signature = this.signPoseidon(challenge);
-        console.log("challenge:", challenge.toString());
         const gistRoot = await this.stateService.getGISTRoot();
         const gistProof: MerkleTreeProof =
             await this.stateService.getGISTProofById(id.bigInt());
@@ -240,13 +246,15 @@ class MTService {
         return inputs;
     }
 
+    async credentialAtomicQueryV3OffchainInput(vc: VerifiableCredential) {}
+
     async generateZKProof(inputs: snarkjs.CircuitSignals): Promise<{
         proof: snarkjs.Groth16Proof;
         publicSignals: snarkjs.PublicSignals;
     }> {
         if (!this.authV3WasmPath || !this.authV3ZkeyPath) {
             throw new Error(
-                "AUTH_V3_WASM_PATH and AUTH_V3_ZKEY_PATH environment variables must be set"
+                "AUTH_V3_WASM_PATH and AUTH_V3_ZKEY_PATH environment variables must be set",
             );
         }
 
@@ -254,7 +262,7 @@ class MTService {
             const { proof, publicSignals } = await snarkjs.groth16.fullProve(
                 inputs,
                 this.authV3WasmPath,
-                this.authV3ZkeyPath
+                this.authV3ZkeyPath,
             );
 
             return { proof, publicSignals };
@@ -262,46 +270,10 @@ class MTService {
             throw new Error(
                 `Failed to generate proof: ${
                     error instanceof Error ? error.message : String(error)
-                }`
+                }`,
             );
         }
     }
-
-    // async verifyProof(
-    //     proof: snarkjs.Groth16Proof,
-    //     publicSignals: snarkjs.PublicSignals
-    // ): Promise<boolean> {
-    //     const vKeyPath = process.env.AUTH_V3_VERIFICATION_KEY_PATH;
-
-    //     if (!vKeyPath) {
-    //         throw new Error(
-    //             "AUTH_V3_VERIFICATION_KEY_PATH environment variable must be set"
-    //         );
-    //     }
-
-    //     try {
-    //         // Read verification key from file
-    //         const vKeyJson = await readFile(vKeyPath, "utf-8");
-    //         const vKey = JSON.parse(vKeyJson);
-
-    //         // Verify the proof
-    //         const isValid = await snarkjs.groth16.verify(
-    //             vKey,
-    //             publicSignals,
-    //             proof
-    //         );
-
-    //         return isValid;
-    //     } catch (error) {
-    //         throw new Error(
-    //             `Failed to verify proof: ${
-    //                 error instanceof Error ? error.message : String(error)
-    //             }`
-    //         );
-    //     }
-    // }
-
-    // Additional utility methods
 
     /**
      * Get the current state and ID of the identity
@@ -367,6 +339,5 @@ class MTService {
 export async function createMTService(privateKey: string): Promise<MTService> {
     const mtService = new MTService(privateKey);
     await mtService.initialize();
-    console.log(mtService.getDID.toString);
     return mtService;
 }

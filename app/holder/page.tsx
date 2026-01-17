@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Wallet,
     Shield,
-    Send,
-    CheckCircle,
-    XCircle,
     Clock,
     Copy,
-    Eye,
-    EyeOff,
     Fingerprint,
-    Key,
     Award,
     Plus,
-    Info,
+    Check,
+    LogOut,
+    ChevronDown,
 } from "lucide-react";
 import { HolderActiveTab, HolderModal } from "@/constants/holder";
 import { useIdentityStore } from "@/store/identity.store";
@@ -24,302 +20,60 @@ import MyVerifiableCredential from "@/components/holder/MyVerifiableCredential";
 import MyCredentialRequest from "@/components/holder/MyCredentialRequest";
 import MyProofRequests from "@/components/holder/MyProofRequests";
 import CreateCredentialRequestModal from "@/components/holder/modal/CreateCredentialRequestModal";
-import GenerateProofModal from "@/components/holder/modal/GenerateProofModal";
-import ProofRequestDetailModal from "@/components/holder/modal/ProofRequestDetailModal";
-import CredentialRequestDetailModal from "@/components/holder/modal/CredentialRequestDetailModal";
+import { useRouter } from "next/navigation";
 
-// ==================== TYPES ====================
-
-type CredentialType =
-    | "CitizenIdentity"
-    | "AcademyDegree"
-    | "HealthInsurance"
-    | "DriverLicense"
-    | "Passport";
-
-export interface Credential {
-    id: number;
-    type: CredentialType;
-    issuer: string;
-    issuerDID: string;
-    issuedDate: string;
-    expiryDate: string | null;
-    status: "active" | "expired" | "revoked";
-    data: any;
-    proofType: "signature" | "mtp";
-}
-
-export interface CredentialRequest {
-    id: number;
-    type: CredentialType;
-    issuer: string;
-    issuerDID: string;
-    status: "pending" | "approved" | "rejected" | "issued";
-    requestedDate: string;
-    providedData: any;
-    message?: string;
-}
-
-export interface ProofRequest {
-    id: number;
-    verifier: string;
-    verifierDID: string;
-    requestType: string;
-    requirements: string[];
-    status: "pending" | "verified" | "failed";
-    requestedDate: string;
-}
-
-interface AvailableSchema {
-    id: number;
-    name: string;
-    type: CredentialType;
-    issuer: string;
-    issuerDID: string;
-    description: string;
-    requiredFields: string[];
-}
-
-// Mock Credentials
-const credentials: Credential[] = [
-    {
-        id: 1,
-        type: "CitizenIdentity",
-        issuer: "National ID Authority",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5",
-        issuedDate: "2024-01-15",
-        expiryDate: "2030-01-15",
-        status: "active",
-        proofType: "signature",
-        data: {
-            id: "VN001234567",
-            name: "Alice Johnson",
-            gender: "Female",
-            dateOfBirth: "1990-05-15",
-            placeOfBirth: "Hanoi, Vietnam",
-        },
-    },
-    {
-        id: 2,
-        type: "DriverLicense",
-        issuer: "Transport Department",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qLPqPWH4hGF7vjM3MqvKQMNjW8JF4eP9XBg6zY3U9",
-        issuedDate: "2024-02-20",
-        expiryDate: "2032-02-20",
-        status: "active",
-        proofType: "mtp",
-        data: {
-            driverNumber: "DL123456789",
-            class: "B2",
-            point: 12,
-        },
-    },
-    {
-        id: 3,
-        type: "AcademyDegree",
-        issuer: "MIT University",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qJ8KXZnQhPKgVpDxkQwq5NmW9kBEr2PqhL7fY6T8R",
-        issuedDate: "2024-06-15",
-        expiryDate: null,
-        status: "active",
-        proofType: "signature",
-        data: {
-            degreeNumber: "MIT2024001",
-            degreeType: "Bachelor",
-            major: "Computer Science",
-            university: "MIT",
-            graduateYear: 2024,
-        },
-    },
-];
-
-// Mock Credential Requests
-const requests: CredentialRequest[] = [
-    {
-        id: 1,
-        type: "HealthInsurance",
-        issuer: "Health Insurance Corp",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qN9MpVxYkFp5TmRqhL3vQw8JzXnBgE4rD6fG7hY2K",
-        status: "pending",
-        requestedDate: "2024-12-18",
-        providedData: {
-            insuranceNumber: "INS987654321",
-            insuranceType: "Premium",
-            hospital: "Central Hospital",
-        },
-    },
-    {
-        id: 2,
-        type: "Passport",
-        issuer: "Immigration Department",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qP7QwRzXjGl4UhSpmN2xDv9KyYoBfT5nE8fH6jZ3M",
-        status: "approved",
-        requestedDate: "2024-12-15",
-        providedData: {
-            passportNumber: "PP12345678",
-            nationality: "Vietnam",
-            mrz: "P<VNMJOHNSON<<ALICE<<<<<<<<<<<<<<<<<<<<<<<",
-        },
-        message:
-            "Your passport credential has been approved. It will be issued shortly.",
-    },
-];
-
-// Mock Proof Requests
-const proofRequests: ProofRequest[] = [
-    {
-        id: 1,
-        verifier: "Online Banking Service",
-        verifierDID:
-            "did:polygonid:polygon:mumbai:2qR8TxWzYkHm5VjTrnO3yEx0LzZpCgU6oF9gI7kA4N",
-        requestType: "Age Verification",
-        requirements: ["dateOfBirth > 18 years old"],
-        status: "pending",
-        requestedDate: "2024-12-20",
-    },
-    {
-        id: 2,
-        verifier: "Car Rental Company",
-        verifierDID:
-            "did:polygonid:polygon:mumbai:2qS9UyXzZlIn6WkUsoP4zFy1M0AqDhV7pH0hJ8lB5O",
-        requestType: "Driver License Verification",
-        requirements: ["Valid driver license", "Class B2"],
-        status: "verified",
-        requestedDate: "2024-12-19",
-    },
-];
-// Available schemas to request
-const availableSchemas: AvailableSchema[] = [
-    {
-        id: 1,
-        name: "Citizen Identity Card",
-        type: "CitizenIdentity",
-        issuer: "National ID Authority",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5",
-        description: "National citizen identification card",
-        requiredFields: ["id", "name", "gender", "dateOfBirth", "placeOfBirth"],
-    },
-    {
-        id: 2,
-        name: "Health Insurance",
-        type: "HealthInsurance",
-        issuer: "Health Insurance Corp",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qN9MpVxYkFp5TmRqhL3vQw8JzXnBgE4rD6fG7hY2K",
-        description: "Health insurance coverage credential",
-        requiredFields: [
-            "insuranceNumber",
-            "insuranceType",
-            "hospital",
-            "startDate",
-            "expiryDate",
-        ],
-    },
-    {
-        id: 3,
-        name: "Passport",
-        type: "Passport",
-        issuer: "Immigration Department",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qP7QwRzXjGl4UhSpmN2xDv9KyYoBfT5nE8fH6jZ3M",
-        description: "International passport credential",
-        requiredFields: [
-            "passportNumber",
-            "nationality",
-            "mrz",
-            "issueDate",
-            "expiryDate",
-        ],
-    },
-    {
-        id: 4,
-        name: "University Degree",
-        type: "AcademyDegree",
-        issuer: "MIT University",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qJ8KXZnQhPKgVpDxkQwq5NmW9kBEr2PqhL7fY6T8R",
-        description: "Academic degree certificate",
-        requiredFields: [
-            "degreeNumber",
-            "degreeType",
-            "major",
-            "university",
-            "cpa",
-            "graduateYear",
-        ],
-    },
-    {
-        id: 5,
-        name: "Driver License",
-        type: "DriverLicense",
-        issuer: "Transport Department",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qLPqPWH4hGF7vjM3MqvKQMNjW8JF4eP9XBg6zY3U9",
-        description: "Official driver license credential",
-        requiredFields: [
-            "driverNumber",
-            "class",
-            "point",
-            "issueDate",
-            "expiryDate",
-        ],
-    },
-];
-
-const credentialTypeConfig = {
-    CitizenIdentity: {
-        icon: "🆔",
-        label: "Citizen Identity",
-        color: "blue",
-    },
-    AcademyDegree: { icon: "🎓", label: "Academy Degree", color: "purple" },
-    HealthInsurance: {
-        icon: "🏥",
-        label: "Health Insurance",
-        color: "pink",
-    },
-    DriverLicense: {
-        icon: "🚗",
-        label: "Driver License",
-        color: "teal",
-    },
-    Passport: { icon: "✈️", label: "Passport", color: "orange" },
-};
-
-// Mock Holder Identity
 const dashboard = {
-    credentialsCount: 3,
-    pendingRequests: 2,
-    proofsGenerated: 5,
+    verifiableCredentials: 0,
+    credentialRequests: 0,
+    proofsGenerated: 0,
 };
-
-// ==================== MAIN COMPONENT ====================
 
 export default function HolderDashboard() {
     const [activeTab, setActiveTab] = useState<HolderActiveTab>(
-        HolderActiveTab.VerifiableCredentials
+        HolderActiveTab.VerifiableCredentials,
     );
 
     const [showModal, setShowModal] = useState<HolderModal>(HolderModal.Null);
-    const [selectedItem, setSelectedItem] = useState<any>(null);
-    const { did, name, state } = useIdentityStore();
+    const [didCopied, setDIDCopied] = useState<boolean>(false);
+    const [stateCopied, setStateCopied] = useState<boolean>(false);
+    const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
 
-    const copyToClipboard = (text: string) => {
+    const identity = useIdentityStore((state) => state.identity);
+    const logout = useIdentityStore((state) => state.logout);
+    const copyToClipboard = (text: string, type: string) => {
         navigator.clipboard.writeText(text);
-        alert("Copied to clipboard!");
+        setStateCopied(false);
+        setDIDCopied(false);
+        if (type === "did") setDIDCopied(true);
+        if (type === "state") setStateCopied(true);
     };
 
-    // method modal
-    const onClose = () => {
-        setShowModal(HolderModal.Null);
-        setSelectedItem(null);
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.replace("/auth");
+        } catch (err) {
+            console.log(err);
+        }
     };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                profileMenuRef.current &&
+                !profileMenuRef.current.contains(event.target as Node)
+            ) {
+                setShowProfileMenu(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
@@ -340,52 +94,177 @@ export default function HolderDashboard() {
                                 </p>
                             </div>
                         </div>
+
+                        {/* Profile Menu */}
+                        <div className="relative" ref={profileMenuRef}>
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() =>
+                                    setShowProfileMenu(!showProfileMenu)
+                                }
+                                className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all"
+                            >
+                                {/* Avatar */}
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                    <span className="text-white font-semibold text-sm">
+                                        {identity?.name
+                                            .split(" ")
+                                            .map((n) => n[0])
+                                            .join("")
+                                            .toUpperCase()}
+                                    </span>
+                                </div>
+
+                                {/* User Info */}
+                                <div className="text-left hidden sm:block">
+                                    <div className="text-sm font-semibold text-gray-900">
+                                        {identity?.name}
+                                    </div>
+                                </div>
+
+                                {/* Dropdown Icon */}
+                                <ChevronDown
+                                    className={`w-4 h-4 text-gray-500 transition-transform ${
+                                        showProfileMenu ? "rotate-180" : ""
+                                    }`}
+                                />
+                            </motion.button>
+
+                            {/* Dropdown Menu */}
+                            <AnimatePresence>
+                                {showProfileMenu && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden z-50"
+                                    >
+                                        {/* User Info in Dropdown */}
+                                        <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 border-b border-gray-200">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                                    <span className="text-white font-bold text-lg">
+                                                        {identity?.name
+                                                            .split(" ")
+                                                            .map((n) => n[0])
+                                                            .join("")
+                                                            .toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-sm font-semibold text-gray-900 truncate">
+                                                        {identity?.name}
+                                                    </div>
+                                                    <div className="text-xs text-gray-600">
+                                                        Holder Account
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* DID Section */}
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <Fingerprint className="w-3.5 h-3.5 text-blue-600" />
+                                                        <span className="text-xs font-semibold text-gray-700">
+                                                            DID
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 bg-white rounded-lg p-2 border border-gray-200">
+                                                        <code className="text-xs text-gray-900 font-mono flex-1 truncate">
+                                                            {identity?.did}
+                                                        </code>
+                                                        <button
+                                                            onClick={() =>
+                                                                copyToClipboard(
+                                                                    identity?.did as string,
+                                                                    "did",
+                                                                )
+                                                            }
+                                                            className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                                                        >
+                                                            {didCopied ? (
+                                                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                                            ) : (
+                                                                <Copy className="w-3.5 h-3.5 text-gray-600" />
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* State Hash Section */}
+                                                <div>
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <Shield className="w-3.5 h-3.5 text-purple-600" />
+                                                        <span className="text-xs font-semibold text-gray-700">
+                                                            State Hash
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 bg-white rounded-lg p-2 border border-gray-200">
+                                                        <code className="text-xs text-gray-900 font-mono flex-1 truncate">
+                                                            {identity?.state}
+                                                        </code>
+                                                        <button
+                                                            onClick={() =>
+                                                                copyToClipboard(
+                                                                    identity?.state as string,
+                                                                    "state",
+                                                                )
+                                                            }
+                                                            className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                                                        >
+                                                            {stateCopied ? (
+                                                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                                            ) : (
+                                                                <Copy className="w-3.5 h-3.5 text-gray-600" />
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Menu Items */}
+                                        <div className="py-2">
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left group"
+                                            >
+                                                <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                                                    <LogOut className="w-4 h-4 text-red-600" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="text-sm font-medium text-red-600">
+                                                        Logout
+                                                    </div>
+                                                    <div className="text-xs text-red-500">
+                                                        Sign out of your account
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
 
-                    {/* Wallet Card */}
+                    {/* Stats Card - Simplified without DID/State */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg"
                     >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Fingerprint className="w-5 h-5 text-blue-600" />
-                                    <span className="text-sm font-semibold text-gray-700">
-                                        Decentralized Identifier
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <code className="text-sm text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded border border-gray-200">
-                                        {did.substring(0, 50)}...
-                                    </code>
-                                    <button
-                                        onClick={() => copyToClipboard(did)}
-                                        className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-                                    >
-                                        <Copy className="w-4 h-4 text-gray-600" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-xs text-gray-600 mb-1">
-                                    State Hash
-                                </div>
-                                <div className="text-sm text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                                    {state}
-                                </div>
-                            </div>
-                        </div>
-
                         {/* Stats */}
-                        <div className="grid grid-cols-3 gap-4 mt-6">
+                        <div className="grid grid-cols-3 gap-4">
                             <motion.div
                                 whileHover={{ scale: 1.05 }}
                                 className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200"
                             >
                                 <div className="text-2xl font-bold text-blue-700">
-                                    {dashboard.credentialsCount}
+                                    {dashboard.verifiableCredentials}
                                 </div>
                                 <div className="text-xs text-blue-600">
                                     Credentials
@@ -396,7 +275,7 @@ export default function HolderDashboard() {
                                 className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center border border-purple-200"
                             >
                                 <div className="text-2xl font-bold text-purple-700">
-                                    {dashboard.pendingRequests}
+                                    {dashboard.credentialRequests}
                                 </div>
                                 <div className="text-xs text-purple-600">
                                     Pending
@@ -423,29 +302,25 @@ export default function HolderDashboard() {
                         {[
                             {
                                 id: HolderActiveTab.VerifiableCredentials,
-                                label: "My Credentials",
+                                label: "My Verifiable Credentials",
                                 icon: Award,
                             },
                             {
                                 id: HolderActiveTab.CredentialRequests,
                                 label: "My Credential Requests",
                                 icon: Clock,
-                                badge: requests.filter(
-                                    (r) => r.status === "pending"
-                                ).length,
                             },
                             {
                                 id: HolderActiveTab.ProofRequests,
                                 label: "Proof Requests",
                                 icon: Shield,
-                                badge: proofRequests.filter(
-                                    (p) => p.status === "pending"
-                                ).length,
                             },
                         ].map((tab) => (
                             <motion.button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                onClick={() =>
+                                    setActiveTab(tab.id as HolderActiveTab)
+                                }
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 className={`px-6 py-2.5 rounded-lg transition-all font-medium text-sm flex items-center gap-2 ${
@@ -456,11 +331,6 @@ export default function HolderDashboard() {
                             >
                                 <tab.icon className="w-4 h-4" />
                                 {tab.label}
-                                {tab.badge && tab.badge > 0 && (
-                                    <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">
-                                        {tab.badge}
-                                    </span>
-                                )}
                             </motion.button>
                         ))}
                     </div>
@@ -483,21 +353,22 @@ export default function HolderDashboard() {
                     {/* My Credentials Tab */}
                     {activeTab === HolderActiveTab.VerifiableCredentials && (
                         <MyVerifiableCredential
-                            credentialTypeConfig={credentialTypeConfig}
+                            showModal={showModal}
                             setShowModal={setShowModal}
                         />
                     )}
 
                     {/* My Requests Tab */}
                     {activeTab === HolderActiveTab.CredentialRequests && (
-                        <MyCredentialRequest
-                            credentialTypeConfig={credentialTypeConfig}
-                        />
+                        <MyCredentialRequest />
                     )}
 
                     {/* Proof Requests Tab */}
                     {activeTab === HolderActiveTab.ProofRequests && (
-                        <MyProofRequests setShowModal={setShowModal} />
+                        <MyProofRequests
+                            showModal={showModal}
+                            setShowModal={setShowModal}
+                        />
                     )}
                 </AnimatePresence>
             </div>
@@ -507,51 +378,9 @@ export default function HolderDashboard() {
                 {showModal === HolderModal.CreateCredentialRequest && (
                     <CreateCredentialRequestModal
                         onClose={() => setShowModal(HolderModal.Null)}
-                        onSubmit={(data) => {
-                            setShowModal(HolderModal.Null);
-                        }}
                     />
                 )}
-
-                {showModal === HolderModal.CredentialRequestDetail &&
-                    selectedItem && (
-                        <CredentialRequestDetailModal
-                            credential={selectedItem}
-                            onClose={() => {
-                                setShowModal(HolderModal.Null);
-                                setSelectedItem(null);
-                            }}
-                        />
-                    )}
-
-                {showModal === HolderModal.GenerateProof && selectedItem && (
-                    <GenerateProofModal
-                        proofRequest={selectedItem}
-                        credentials={credentials}
-                        onClose={() => {
-                            setShowModal(HolderModal.Null);
-                            setSelectedItem(null);
-                        }}
-                        onGenerate={(proof) => {
-                            setShowModal(HolderModal.Null);
-                            setSelectedItem(null);
-                        }}
-                    />
-                )}
-
-                {showModal === HolderModal.ProofRequestDetail &&
-                    selectedItem && (
-                        <ProofRequestDetailModal
-                            proofRequest={selectedItem}
-                            onClose={() => {
-                                setShowModal(HolderModal.Null);
-                                setSelectedItem(null);
-                            }}
-                        />
-                    )}
             </AnimatePresence>
         </div>
     );
 }
-
-// ==================== MODALS ====================

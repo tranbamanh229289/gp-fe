@@ -1,185 +1,240 @@
 import {
-    Award,
     CheckCircle,
     Clock,
-    Info,
-    LucideProps,
     XCircle,
+    ExternalLink,
+    Calendar,
+    Timer,
+    Building2,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { CredentialRequest } from "@/app/holder/page";
+import { credentialTypeConfig } from "@/constants/issuer";
+import { useCredentialRequestStore } from "@/store/credential_request.store";
+import { useEffect } from "react";
+import {
+    CredentialRequestStatus,
+    credentialStatusConfig,
+} from "@/constants/credential_request";
 
-interface MyCredentialRequestsProp {
-    credentialTypeConfig: Record<
-        string,
-        {
-            icon: string;
-            label: string;
-            color: string;
-        }
-    >;
-}
+export default function MyCredentialRequest() {
+    const getCredentialRequests = useCredentialRequestStore(
+        (state) => state.getCredentialRequests
+    );
+    const credentialRequests = useCredentialRequestStore(
+        (state) => state.credentialRequests
+    );
 
-// Mock Credential Requests
-const requests: CredentialRequest[] = [
-    {
-        id: 1,
-        type: "HealthInsurance",
-        issuer: "Health Insurance Corp",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qN9MpVxYkFp5TmRqhL3vQw8JzXnBgE4rD6fG7hY2K",
-        status: "pending",
-        requestedDate: "2024-12-18",
-        providedData: {
-            insuranceNumber: "INS987654321",
-            insuranceType: "Premium",
-            hospital: "Central Hospital",
-        },
-    },
-    {
-        id: 2,
-        type: "Passport",
-        issuer: "Immigration Department",
-        issuerDID:
-            "did:polygonid:polygon:mumbai:2qP7QwRzXjGl4UhSpmN2xDv9KyYoBfT5nE8fH6jZ3M",
-        status: "approved",
-        requestedDate: "2024-12-15",
-        providedData: {
-            passportNumber: "PP12345678",
-            nationality: "Vietnam",
-            mrz: "P<VNMJOHNSON<<ALICE<<<<<<<<<<<<<<<<<<<<<<<",
-        },
-        message:
-            "Your passport credential has been approved. It will be issued shortly.",
-    },
-];
+    const formatDate = (date: number) => {
+        return new Date(date * 1000).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    };
 
-export default function MyCredentialRequest({
-    credentialTypeConfig,
-}: MyCredentialRequestsProp) {
+    const formatDuration = (expiration: number) => {
+        return expiration / (3600 * 24);
+    };
+
+    const isExpired = (expiresTime: number) => {
+        const nowInSeconds = () => Math.floor(Date.now() / 1000);
+        return expiresTime < nowInSeconds();
+    };
+
+    useEffect(() => {
+        getCredentialRequests();
+    }, []);
+
     return (
-        <motion.div
-            key="requests"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-        >
-            <div className="mb-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="mb-8">
+                <h2 className="text-xl font-bold text-slate-900 mb-2">
                     My Credential Requests
                 </h2>
                 <p className="text-sm text-gray-600">
-                    Track your credential requests status
+                    Track and manage your credential requests
                 </p>
             </div>
 
+            {/* Requests List */}
             <div className="space-y-4">
-                {requests.map((request) => {
-                    const config = credentialTypeConfig[request.type];
+                {credentialRequests.map((request, index) => {
+                    const config = credentialTypeConfig[request.documentType];
+                    const expired = isExpired(request.expiresTime);
+                    let statusConfig = credentialStatusConfig[request.status];
+
+                    if (
+                        expired &&
+                        request.status === CredentialRequestStatus.Pending
+                    ) {
+                        statusConfig =
+                            credentialStatusConfig[
+                                CredentialRequestStatus.Expired
+                            ];
+                    }
+                    const StatusIcon = statusConfig.icon;
 
                     return (
                         <motion.div
                             key={request.id}
-                            whileHover={{ scale: 1.01 }}
-                            className="bg-white rounded-xl p-5 border border-gray-200 hover:border-purple-300 hover:shadow-xl transition-all"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            whileHover={{
+                                y: -2,
+                                boxShadow: "0 12px 24px -8px rgba(0,0,0,0.12)",
+                            }}
+                            className="group bg-white rounded-2xl border-2 border-slate-200 hover:border-blue-300 transition-all duration-200 overflow-hidden"
                         >
-                            <div className="flex items-start gap-4">
-                                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-2xl flex-shrink-0 border border-blue-300 shadow-sm">
-                                    {config.icon}
-                                </div>
+                            <div className="p-6">
+                                {/* Top Row: Icon, Title, Status */}
+                                <div className="flex items-start gap-5 mb-5">
+                                    {/* Icon */}
+                                    <div
+                                        className={`w-14 h-14 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-sm flex-shrink-0`}
+                                    >
+                                        <config.icon className="w-7 h-7 text-white" />
+                                    </div>
 
-                                <div className="flex-1">
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div>
-                                            <h3 className="text-lg font-bold text-gray-900">
+                                    {/* Title & Badges */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3 flex-wrap mb-2">
+                                            <h3 className="text-xl font-bold text-slate-900">
                                                 {config.label}
                                             </h3>
-                                            <p className="text-sm text-gray-600">
-                                                {request.issuer}
-                                            </p>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Requested:{" "}
-                                                {new Date(
-                                                    request.requestedDate
-                                                ).toLocaleDateString()}
-                                            </p>
+
+                                            {
+                                                <span
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 ${statusConfig.color} flex items-center gap-1.5`}
+                                                >
+                                                    <StatusIcon className="w-3.5 h-3.5" />
+                                                    {request.status}
+                                                </span>
+                                            }
                                         </div>
-                                        <span
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                                                request.status === "pending"
-                                                    ? "bg-amber-100 text-amber-700 border-amber-300"
-                                                    : request.status ===
-                                                      "approved"
-                                                    ? "bg-blue-100 text-blue-700 border-blue-300"
-                                                    : request.status ===
-                                                      "issued"
-                                                    ? "bg-green-100 text-green-700 border-green-300"
-                                                    : "bg-red-100 text-red-700 border-red-300"
+
+                                        {/* Issuer Info */}
+                                        <div className="flex items-center gap-2 text-sx">
+                                            <Building2 className="w-6 h-6 text-gray-500" />
+                                            <span className="font-semibold text-slate-700">
+                                                {request.issuerName}
+                                            </span>
+                                            <span className="text-slate-400">
+                                                •
+                                            </span>
+                                            <code className="text-xs font-mono text-slate-800  max-w-md">
+                                                {request.issuerDID}
+                                            </code>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Schema Info */}
+                                <div className="mb-5 p-4 rounded-xl bg-purple-50 border border-purple-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">
+                                            Schema
+                                        </span>
+                                        <a
+                                            href={request.schemaURL}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-semibold transition-colors group"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            View Details
+                                            <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                        </a>
+                                    </div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sx font-semibold text-slate-900 mb-1">
+                                            {request.schemaTitle}
+                                        </p>
+                                        <code className="text-sx font-mono text-purple-700 bg-white px-2 py-1 rounded border border-purple-300 inline-block">
+                                            {request.schemaType}
+                                        </code>
+                                    </div>
+                                </div>
+
+                                {/* Bottom Grid: Dates & Validity */}
+                                <div className="grid grid-cols-3 gap-4">
+                                    {/* Created */}
+                                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Calendar className="w-4 h-4 text-slate-500" />
+                                            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                                                Created
+                                            </span>
+                                        </div>
+                                        <p className="text-sm font-semibold text-slate-900">
+                                            {formatDate(request.createdTime)}
+                                        </p>
+                                    </div>
+
+                                    {/* Expires */}
+                                    <div
+                                        className={`p-3 rounded-xl border ${
+                                            expired
+                                                ? "bg-rose-50 border-rose-200"
+                                                : "bg-slate-50 border-slate-200"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Timer className="w-4 h-4 text-slate-500" />
+                                            <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                                                Expires
+                                            </span>
+                                        </div>
+                                        <p
+                                            className={`text-sm font-semibold ${
+                                                expired
+                                                    ? "text-rose-700"
+                                                    : "text-slate-900"
                                             }`}
                                         >
-                                            {request.status === "pending" && (
-                                                <Clock className="w-3 h-3 inline mr-1" />
-                                            )}
-                                            {request.status === "approved" && (
-                                                <CheckCircle className="w-3 h-3 inline mr-1" />
-                                            )}
-                                            {request.status === "issued" && (
-                                                <Award className="w-3 h-3 inline mr-1" />
-                                            )}
-                                            {request.status === "rejected" && (
-                                                <XCircle className="w-3 h-3 inline mr-1" />
-                                            )}
-                                            {request.status}
-                                        </span>
-                                    </div>
-
-                                    {/* Provided Data */}
-                                    <div className="mt-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
-                                        <p className="text-xs font-semibold text-gray-700 mb-2">
-                                            PROVIDED DATA
+                                            {formatDate(request.expiresTime)}
                                         </p>
-                                        <div className="space-y-1">
-                                            {Object.entries(
-                                                request.providedData
-                                            ).map(([key, value]) => (
-                                                <div
-                                                    key={key}
-                                                    className="flex justify-between text-sm"
-                                                >
-                                                    <span className="text-gray-600">
-                                                        {key}:
-                                                    </span>
-                                                    <span className="text-gray-900 font-semibold">
-                                                        {String(value)}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
                                     </div>
 
-                                    {request.message && (
-                                        <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                                            <div className="flex items-start gap-2">
-                                                <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                                                <p className="text-sm text-blue-700">
-                                                    {request.message}
-                                                </p>
-                                            </div>
+                                    {/* Validity */}
+                                    <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Clock className="w-4 h-4 text-blue-600" />
+                                            <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">
+                                                Validity
+                                            </span>
                                         </div>
-                                    )}
+                                        <p className="text-sm font-semibold text-slate-900">
+                                            {formatDuration(request.expiration)}{" "}
+                                            days
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
                     );
                 })}
-
-                {requests.length === 0 && (
-                    <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                        <Clock className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500">No requests yet</p>
-                    </div>
-                )}
             </div>
-        </motion.div>
+
+            {/* Empty State */}
+            {credentialRequests.length === 0 && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-slate-300"
+                >
+                    <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                        <Clock className="w-10 h-10 text-slate-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">
+                        No Requests Yet
+                    </h3>
+                    <p className="text-slate-600">
+                        Your credential requests will appear here
+                    </p>
+                </motion.div>
+            )}
+        </div>
     );
 }

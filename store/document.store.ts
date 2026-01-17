@@ -42,6 +42,11 @@ interface DocumentStore {
         id: string,
         status: DocumentStatus
     ) => Promise<void>;
+    fetchDocumentByHolderDID: (
+        type: DocumentType,
+        holderDID: string
+    ) => Promise<DocumentData>;
+
     total: () => number;
 }
 
@@ -78,6 +83,23 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
             });
         } catch (err) {
             set({ error: "fetch_err" });
+            throw err;
+        } finally {
+            set({ loading: false });
+        }
+    },
+
+    fetchDocumentByHolderDID: async (type: DocumentType, holderDID: string) => {
+        set({ loading: true });
+        try {
+            const res = await axiosInstance.get<{
+                data: DocumentData;
+            }>(`documents/${holderDID}`, { params: { documentType: type } });
+
+            return res.data.data;
+        } catch (err) {
+            set({ error: "fetch_err" });
+            throw err;
         } finally {
             set({ loading: false });
         }
@@ -103,8 +125,10 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
                     },
                 };
             });
+            await new Promise((resolve) => setTimeout(resolve, 2000));
         } catch (err) {
             set({ error: "create_err" });
+            throw err;
         } finally {
             set({ loading: false });
         }
@@ -140,8 +164,10 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
                     },
                 };
             });
+            await new Promise((resolve) => setTimeout(resolve, 2000));
         } catch (err) {
             set({ error: "update_err" });
+            throw err;
         } finally {
             set({ loading: false });
         }
@@ -175,6 +201,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
             });
         } catch (err) {
             set({ error: "delete_err" });
+            throw err;
         } finally {
             set({ loading: false });
         }

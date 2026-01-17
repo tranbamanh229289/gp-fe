@@ -1,186 +1,420 @@
-import { DocumentType } from "@/constants/document";
-import { motion } from "framer-motion";
-import { Send } from "lucide-react";
-import { useState } from "react";
+import { AuthRole } from "@/constants/auth";
+import { useIdentityStore } from "@/store/identity.store";
+import { useSchemaStore } from "@/store/schema.store";
+import { CredentialIssuanceRequest } from "@/types/credential_request";
+import { Identity } from "@/types/auth";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, X, FileText, Loader2, User, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Schema } from "@/types/schema";
+import { useCredentialRequestStore } from "@/store/credential_request.store";
+import { ProofType } from "@0xpolygonid/js-sdk";
 
 export default function CreateCredentialRequestModal({
     onClose,
-    onSubmit,
-}: any) {
-    const [selectedType, setSelectedType] = useState<DocumentType>(
-        DocumentType.CitizenIdentity
+}: {
+    onClose: () => void;
+}) {
+    const identity = useIdentityStore((state) => state.identity);
+    const fetchIdentities = useIdentityStore((state) => state.fetchIdentities);
+    const isLoadingIssuers = useIdentityStore((state) => state.loading);
+
+    const fetchSchemas = useSchemaStore((state) => state.fetchSchemas);
+    const isLoadingSchemas = useSchemaStore((state) => state.loading);
+
+    const createCredentialRequest = useCredentialRequestStore(
+        (state) => state.createCredentialRequest
     );
-    const [issuerDID, setIssuerDID] = useState("");
-    const [formData, setFormData] = useState<any>({});
 
-    const credentialFields: Record<CredentialType, string[]> = {
-        CitizenIdentity: [
-            "id",
-            "name",
-            "gender",
-            "placeOfBirth",
-            "dateOfBirth",
-            "issueDate",
-            "expiryDate",
-        ],
-        AcademyDegree: [
-            "degreeNumber",
-            "degreeType",
-            "major",
-            "university",
-            "cpa",
-            "graduateYear",
-            "classification",
-        ],
-        HealthInsurance: [
-            "insuranceNumber",
-            "insuranceType",
-            "hospital",
-            "startDate",
-            "expiryDate",
-        ],
-        DriverLicense: [
-            "driverNumber",
-            "class",
-            "point",
-            "issueDate",
-            "expiryDate",
-        ],
-        Passport: [
-            "passportNumber",
-            "nationality",
-            "mrz",
-            "issueDate",
-            "expiryDate",
-        ],
+    const [formData, setFormData] = useState<CredentialIssuanceRequest>({
+        holderDID: identity?.did || "",
+        issuerDID: "",
+        schemaHash: "",
+        schemaURL: "",
+        schemaType: "",
+        createdTime: 0,
+        expiresTime: 0,
+        expiration: 1,
+    });
+
+    const [issuers, setIssuers] = useState<Identity[]>([]);
+    const [schemas, setSchemas] = useState<Schema[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!isFormValid()) return;
+        setLoading(true);
+        try {
+            const requestData: CredentialIssuanceRequest = {
+                holderDID: formData.holderDID,
+                issuerDID: formData.issuerDID,
+                schemaHash: formData.schemaHash,
+                schemaURL: formData.schemaURL,
+                schemaType: formData.schemaType,
+                expiration: formData.expiration * 24 * 3600,
+                createdTime: Math.floor(Date.now() / 1000),
+                expiresTime: Math.floor(Date.now() / 1000) + 24 * 3600,
+            };
+            await createCredentialRequest(requestData);
+            onClose();
+        } catch (error) {
+            console.error("Failed to submit request:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const typeIcons = {
-        CitizenIdentity: "🆔",
-        AcademyDegree: "🎓",
-        HealthInsurance: "🏥",
-        DriverLicense: "🚗",
-        Passport: "✈️",
+    const updateField = (key: keyof CredentialIssuanceRequest, value: any) => {
+        let updated = { ...formData, [key]: value };
+        if (key === "schemaURL") {
+            const schema = getSchemaBySchemaURL(value);
+            updated = {
+                ...updated,
+                schemaType: schema?.type ?? "",
+                schemaHash: schema?.hash ?? "",
+            };
+        }
+        setFormData(updated);
     };
+
+    const getSchemaBySchemaURL = (url: string): Schema | undefined => {
+        return schemas.find((item) => item.schemaURL === url);
+    };
+
+    const isFormValid = () => {
+        return (
+            formData.holderDID &&
+            formData.issuerDID &&
+            formData.schemaURL &&
+            formData.schemaType &&
+            formData.expiration &&
+            formData.expiration > 0
+        );
+    };
+
+    // Fetch schemas and issuers on mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch schemas
+                const schemas: Schema[] = await fetchSchemas();
+                const issuers: Identity[] = await fetchIdentities(
+                    AuthRole.Issuer
+                );
+
+                setIssuers(issuers || []);
+                setSchemas(schemas || []);
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+            className="fixed inset-0 bg-gradient-to-br from-slate-900/70 via-slate-800/70 to-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={onClose}
         >
             <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl"
+                className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
             >
-                <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                        Create Credential Request
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                        Select type and provide issuer information
-                    </p>
+                {/* Header */}
+                <div className="relative px-8 pt-8 pb-6 bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200">
+                    <motion.button
+                        whileHover={{ scale: 1.1, rotate: 90 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={onClose}
+                        className="absolute top-6 right-6 p-2 rounded-full hover:bg-white transition-all"
+                    >
+                        <X className="w-5 h-5 text-slate-500" />
+                    </motion.button>
+
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
+                            <FileText className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-3xl font-bold text-slate-900">
+                                Request Credential
+                            </h2>
+                            <p className="text-sm text-slate-600 mt-1">
+                                Fill in the details to submit your request
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="p-6">
-                    {/* Credential Type Selection */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-900 mb-3">
-                            Credential Type
-                        </label>
-                        <div className="grid grid-cols-5 gap-2">
-                            {Object.entries(typeIcons).map(([type, icon]) => (
-                                <motion.button
-                                    key={type}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() =>
-                                        setSelectedType(type as CredentialType)
-                                    }
-                                    className={`p-3 rounded-lg border-2 transition-all ${
-                                        selectedType === type
-                                            ? "border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/20"
-                                            : "border-gray-200 hover:border-gray-300 bg-white"
-                                    }`}
-                                >
-                                    <div className="text-2xl mb-1">{icon}</div>
-                                    <div className="text-xs text-gray-900">
-                                        {type}
+                {/* Content */}
+                <div className="p-8 overflow-y-auto max-h-[calc(90vh-240px)]">
+                    <div className="space-y-6">
+                        {/* Your Information (Read-only) */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="space-y-4"
+                        >
+                            <div className="flex items-center gap-2">
+                                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
+                                <h3 className="text-lg font-semibold text-slate-800">
+                                    Your Information
+                                </h3>
+                            </div>
+
+                            {identity ? (
+                                <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-indigo-100 rounded-lg">
+                                            <User className="w-5 h-5 text-indigo-600" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-sm font-semibold text-slate-700">
+                                                    {identity?.name}
+                                                </span>
+                                                <span className="px-2 py-0.5 bg-indigo-200 text-indigo-700 text-xs rounded-full font-medium">
+                                                    You
+                                                </span>
+                                            </div>
+                                            <code className="text-xs text-slate-600 font-mono break-all">
+                                                {identity?.did}
+                                            </code>
+                                        </div>
                                     </div>
-                                </motion.button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Issuer DID */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-900 mb-2">
-                            Issuer DID
-                        </label>
-                        <input
-                            type="text"
-                            value={issuerDID}
-                            onChange={(e) => setIssuerDID(e.target.value)}
-                            placeholder="did:polygonid:polygon:mumbai:..."
-                            className="w-full px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono text-sm transition-all"
-                        />
-                    </div>
-
-                    {/* Credential Data Fields */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-900 mb-3">
-                            Credential Data
-                        </label>
-                        <div className="space-y-3">
-                            {credentialFields[selectedType].map((field) => (
-                                <div key={field}>
-                                    <label className="block text-xs text-gray-600 mb-1">
-                                        {field}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData[field] || ""}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                [field]: e.target.value,
-                                            })
-                                        }
-                                        placeholder={`Enter ${field}`}
-                                        className="w-full px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all"
-                                    />
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            ) : (
+                                <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-200">
+                                    <div className="flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-amber-900">
+                                                Identity not found
+                                            </p>
+                                            <p className="text-xs text-amber-700 mt-1">
+                                                Please set up your identity
+                                                first
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
 
+                        {/* Issuer Selection */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="space-y-4"
+                        >
+                            <div className="flex items-center gap-2">
+                                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
+                                <h3 className="text-lg font-semibold text-slate-800">
+                                    Issuer Information
+                                </h3>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Select Issuer{" "}
+                                    <span className="text-rose-500">*</span>
+                                </label>
+                                {isLoadingIssuers ? (
+                                    <div className="flex items-center justify-center py-3 text-slate-500">
+                                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                        Loading issuers...
+                                    </div>
+                                ) : issuers.length > 0 ? (
+                                    <select
+                                        value={formData.issuerDID || ""}
+                                        onChange={(e) =>
+                                            updateField(
+                                                "issuerDID",
+                                                e.target.value
+                                            )
+                                        }
+                                        className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-slate-700 bg-white"
+                                    >
+                                        <option value="">
+                                            Select an issuer...
+                                        </option>
+                                        {issuers.map((issuer) => (
+                                            <option
+                                                key={issuer.did}
+                                                value={issuer.did}
+                                            >
+                                                {issuer.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-center">
+                                        <p className="text-sm text-amber-700">
+                                            No issuers available
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+
+                        {/* Schema Selection */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="space-y-4"
+                        >
+                            <div className="flex items-center gap-2">
+                                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
+                                <h3 className="text-lg font-semibold text-slate-800">
+                                    Schema Details
+                                </h3>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        Select Schema{" "}
+                                        <span className="text-rose-500">*</span>
+                                    </label>
+                                    {isLoadingSchemas ? (
+                                        <div className="flex items-center justify-center py-3 text-slate-500">
+                                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                            Loading schemas...
+                                        </div>
+                                    ) : schemas.length > 0 ? (
+                                        <select
+                                            value={formData.schemaURL || ""}
+                                            onChange={(e) =>
+                                                updateField(
+                                                    "schemaURL",
+                                                    e.target.value
+                                                )
+                                            }
+                                            className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-slate-700 bg-white"
+                                        >
+                                            <option value="">
+                                                Select a schema...
+                                            </option>
+                                            {schemas.map((schema) => (
+                                                <option
+                                                    key={schema.id}
+                                                    value={schema.schemaURL}
+                                                >
+                                                    {schema.title} (v
+                                                    {schema.version})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-center">
+                                            <p className="text-sm text-amber-700">
+                                                No schemas available
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <AnimatePresence>
+                                    {formData.schemaType && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{
+                                                opacity: 1,
+                                                height: "auto",
+                                            }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                        >
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                                Schema Type
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.schemaType}
+                                                readOnly
+                                                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-700 font-mono text-sm"
+                                            />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </motion.div>
+
+                        {/* Expiration */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
+                                <h3 className="text-lg font-semibold text-slate-800">
+                                    Validity Period
+                                </h3>
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={formData.expiration}
+                                    onChange={(e) =>
+                                        updateField(
+                                            "expiration",
+                                            parseInt(e.target.value)
+                                        )
+                                    }
+                                    min="1"
+                                    className="w-full px-4 py-3 pr-16 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-slate-900"
+                                />
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">
+                                    days
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                                <span className="inline-block w-1 h-1 rounded-full bg-slate-400" />
+                                Credential will be valid for{" "}
+                                {formData.expiration || 365} days from issuance
+                            </p>
+                        </motion.div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-8 py-6 bg-slate-50 border-t border-slate-200">
                     <div className="flex gap-3">
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={onClose}
-                            className="flex-1 px-6 py-3 rounded-lg border-2 border-gray-300 hover:bg-gray-50 text-gray-900 font-semibold transition-all"
+                            className="flex-1 px-6 py-3.5 rounded-xl border-2 border-slate-300 hover:bg-white hover:border-slate-400 text-slate-700 font-semibold transition-all"
                         >
                             Cancel
                         </motion.button>
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() =>
-                                onSubmit({
-                                    type: selectedType,
-                                    issuerDID,
-                                    data: formData,
-                                })
-                            }
-                            className="flex-1 px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30"
+                            whileHover={{ scale: isFormValid() ? 1.02 : 1 }}
+                            whileTap={{ scale: isFormValid() ? 0.98 : 1 }}
+                            onClick={handleSubmit}
+                            disabled={!isFormValid() || loading}
+                            className={`flex-1 px-6 py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                                isFormValid() && !loading
+                                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl"
+                                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            }`}
                         >
-                            <Send className="w-5 h-5" />
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <Send className="w-5 h-5" />
+                            )}
                             Submit Request
                         </motion.button>
                     </div>

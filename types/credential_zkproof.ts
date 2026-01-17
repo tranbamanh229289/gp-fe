@@ -1,15 +1,34 @@
+import { ProofRequestStatus } from "@/constants/credential_zkproof";
+import {
+    CircuitId,
+    JsonDocumentObject,
+    Operators,
+    ProofType,
+    ZeroKnowledgeProofQuery,
+} from "@0xpolygonid/js-sdk";
+
 export interface ProofRequest {
     id: string;
     threadId: string;
     verifierDID: string;
+    verifierName: string;
+    schemaId: string;
     callbackURL: string;
     reason: string;
     message: string;
-    scopeID: number;
+    circuitId: string;
+    scopeId: number;
     allowedIssuers: string[];
-    status: string;
-    expiresTime: bigint;
-    createdTime: bigint;
+    credentialSubject: JsonDocumentObject;
+    context: string;
+    type: string;
+    proofType: ProofType;
+    skipClaimRevocationCheck: boolean;
+    groupId: number;
+    nullifierSession: string;
+    status: ProofRequestStatus;
+    expiresTime: number;
+    createdTime: number;
 }
 
 export interface ProofResponse {
@@ -17,4 +36,24 @@ export interface ProofResponse {
     threadId: string;
     holderDID: string;
     verifiedAt: string;
+}
+export interface AuthorizationRequest {
+    verifierDID: string;
+    callback: string;
+    reason: string;
+    message: string;
+    circuitId: CircuitId;
+    query: ZeroKnowledgeProofQuery;
+    params: {
+        nullifierSessionId?: string | number;
+    };
+    expiresTime: number;
+    createdTime: number;
+}
+
+export type QueryValueType = string | number | boolean | string[] | number[];
+export interface QueryCondition {
+    field: string;
+    operator: Operators;
+    value: QueryValueType;
 }

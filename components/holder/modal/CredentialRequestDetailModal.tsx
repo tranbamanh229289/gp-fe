@@ -1,9 +1,14 @@
+import { CredentialRequest } from "@/types/credential_request";
 import { motion } from "framer-motion";
 
+interface CredentialRequestDetailModalProp {
+    credentialRequest: CredentialRequest;
+    onClose: () => void;
+}
 export default function CredentialRequestDetailModal({
-    credential,
+    credentialRequest,
     onClose,
-}: any) {
+}: CredentialRequestDetailModalProp) {
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -23,7 +28,9 @@ export default function CredentialRequestDetailModal({
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">
                         Credential Details
                     </h3>
-                    <p className="text-sm text-gray-600">{credential.type}</p>
+                    <p className="text-sm text-gray-600">
+                        {credentialRequest.documentType}
+                    </p>
                 </div>
 
                 <div className="p-6">
@@ -31,34 +38,11 @@ export default function CredentialRequestDetailModal({
                         <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
                             <p className="text-xs text-gray-600 mb-1">Issuer</p>
                             <p className="text-sm text-gray-900 font-semibold">
-                                {credential.issuer}
+                                {credentialRequest.issuerName}
                             </p>
                             <p className="text-xs text-gray-600 font-mono mt-1">
-                                {credential.issuerDID}
+                                {credentialRequest.issuerDID}
                             </p>
-                        </div>
-
-                        <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
-                            <p className="text-xs text-gray-600 font-semibold mb-3">
-                                CREDENTIAL DATA
-                            </p>
-                            <div className="space-y-2">
-                                {Object.entries(credential.data).map(
-                                    ([key, value]) => (
-                                        <div
-                                            key={key}
-                                            className="flex justify-between text-sm"
-                                        >
-                                            <span className="text-gray-600">
-                                                {key}:
-                                            </span>
-                                            <span className="text-gray-900 font-semibold">
-                                                {String(value)}
-                                            </span>
-                                        </div>
-                                    )
-                                )}
-                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -68,7 +52,7 @@ export default function CredentialRequestDetailModal({
                                 </p>
                                 <p className="text-sm text-gray-900 font-semibold">
                                     {new Date(
-                                        credential.issuedDate
+                                        credentialRequest.createdTime
                                     ).toLocaleDateString()}
                                 </p>
                             </div>
@@ -77,9 +61,9 @@ export default function CredentialRequestDetailModal({
                                     Expiry Date
                                 </p>
                                 <p className="text-sm text-gray-900 font-semibold">
-                                    {credential.expiryDate
+                                    {credentialRequest.expiresTime
                                         ? new Date(
-                                              credential.expiryDate
+                                              credentialRequest.expiresTime
                                           ).toLocaleDateString()
                                         : "Never"}
                                 </p>

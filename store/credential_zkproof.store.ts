@@ -1,40 +1,70 @@
-import { CredentialZKProofStatus } from "@/constants/credential_zkproof";
+import { ProofRequestStatus } from "@/constants/credential_zkproof";
+import { randomIntSecure } from "@/helper/randomBit";
 import axiosInstance from "@/lib/axios";
-import { Identity } from "@/types/auth";
-import { ProofRequest, ProofResponse } from "@/types/credential_zkproof";
+
+import {
+    AuthorizationRequest,
+    ProofRequest,
+    ProofResponse,
+} from "@/types/credential_zkproof";
+import { protocol } from "@iden3/js-iden3-auth";
 import { create } from "zustand";
 
 export interface CredentialZKProofStore {
     proofRequests: ProofRequest[];
     proofResponses: ProofResponse[];
-    issuers: Identity[];
     loading: boolean;
     error: string;
 
-    createZkProofRequest: () => Promise<void>;
+    createZkProofRequest: (authReq: AuthorizationRequest) => Promise<void>;
     updateZkProofRequest: (
         id: string,
-        status: CredentialZKProofStatus
+        status: ProofRequestStatus
     ) => Promise<void>;
     getAllZkProofRequests: () => Promise<void>;
     createZkProofResponse: () => Promise<void>;
     getAllZkProofResponses: () => Promise<void>;
-    getAllIssuers: () => Promise<void>;
 }
 
 export const useCredentialZKProofStore = create<CredentialZKProofStore>(
     (set, get) => ({
         proofRequests: [],
         proofResponses: [],
-        issuers: [],
+
         loading: false,
         error: "",
 
-        createZkProofRequest: async () => {
+        createZkProofRequest: async (authReq: AuthorizationRequest) => {
             set({ loading: true });
             try {
+                const scopes: protocol.ZeroKnowledgeProofRequest[] = [
+                    {
+                        id: randomIntSecure(2 ^ 32),
+                        circuitId: authReq.circuitId,
+                        query: authReq.query,
+                        params: authReq.params,
+                    },
+                ];
+                const req: protocol.AuthorizationRequestMessage = {
+                    id: crypto.randomUUID(),
+                    typ: protocol.PROTOCOL_CONSTANTS.MediaType.PlainMessage,
+                    type: protocol.PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
+                        .AUTHORIZATION_REQUEST_MESSAGE_TYPE,
+                    thid: crypto.randomUUID(),
+                    body: {
+                        callbackUrl: authReq.callback,
+                        reason: authReq.reason,
+                        message: authReq.message,
+                        scope: scopes,
+                    },
+                    from: authReq.verifierDID,
+                    created_time: authReq.createdTime,
+                    expires_time: authReq.expiresTime,
+                };
+
                 const res = await axiosInstance.post<{ data: ProofRequest }>(
-                    "/proofs/request"
+                    "/proofs/request",
+                    req
                 );
                 set((state) => {
                     return {
@@ -42,8 +72,10 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
                         proofRequests: [...state.proofRequests, res.data.data],
                     };
                 });
+                await new Promise((resolve) => setTimeout(resolve, 2000));
             } catch (err) {
                 set({ error: "call_failed" });
+                throw err;
             } finally {
                 set({ loading: false });
             }
@@ -51,7 +83,7 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
 
         updateZkProofRequest: async (
             id: string,
-            status: CredentialZKProofStatus
+            status: ProofRequestStatus
         ) => {
             set({ loading: true });
             try {
@@ -70,8 +102,10 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
                         }),
                     };
                 });
+                await new Promise((resolve) => setTimeout(resolve, 2000));
             } catch (err) {
                 set({ error: "call_failed" });
+                throw err;
             } finally {
                 set({ loading: false });
             }
@@ -83,9 +117,10 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
                 const res = await axiosInstance.get<{ data: ProofRequest[] }>(
                     "/proofs/request"
                 );
-                set({ proofRequests: res.data.data });
+                set({ proofRequests: res.data.data ?? [] });
             } catch (err) {
                 set({ error: "call_failed" });
+                throw err;
             } finally {
                 set({ loading: false });
             }
@@ -106,8 +141,10 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
                         ],
                     };
                 });
+                await new Promise((resolve) => setTimeout(resolve, 2000));
             } catch (err) {
                 set({ error: "call_failed" });
+                throw err;
             } finally {
                 set({ loading: false });
             }
@@ -122,24 +159,7 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
                 set({ proofResponses: res.data.data });
             } catch (err) {
                 set({ error: "call_failed" });
-            } finally {
-                set({ loading: false });
-            }
-        },
-
-        getAllIssuers: async () => {
-            set({ loading: true });
-            try {
-                const params = {
-                    role: "issuer",
-                };
-                const res = await axiosInstance.get<{ data: Identity[] }>(
-                    "/authzk",
-                    { params }
-                );
-                set({ issuers: res.data.data });
-            } catch (err) {
-                set({ error: "call_failed" });
+                throw err;
             } finally {
                 set({ loading: false });
             }

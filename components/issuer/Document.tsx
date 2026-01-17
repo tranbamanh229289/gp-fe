@@ -1,15 +1,12 @@
-import {
-    Edit,
-    FileText,
-    Plus,
-    Search,
-    Trash2,
-    LucideProps,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { Edit, FileText, Filter, Plus, Search, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import { DocumentStatus, DocumentType } from "@/constants/document";
-import { IssuerItemSelectedType, IssuerModal } from "@/constants/issuer";
+import {
+    credentialTypeConfig,
+    IssuerItemSelectedType,
+    IssuerModal,
+} from "@/constants/issuer";
 import { useDocumentStore } from "@/store/document.store";
 import { IssuerItemSelected } from "@/types/issuer";
 import DeleteModal from "./modal/DeleteModal";
@@ -17,15 +14,6 @@ import DeleteModal from "./modal/DeleteModal";
 interface DocumentProp {
     showModal: IssuerModal;
     itemSelected: IssuerItemSelected;
-    credentialTypeConfig: Record<
-        string,
-        {
-            icon: React.ComponentType<LucideProps>;
-            label: string;
-            color: string;
-            gradient: string;
-        }
-    >;
     setItemSelected: (item: IssuerItemSelected) => void;
     setItemSelectedType: (item: IssuerItemSelectedType) => void;
     setShowModal: (modal: IssuerModal) => void;
@@ -33,34 +21,40 @@ interface DocumentProp {
 
 export default function Documents({
     itemSelected,
-    credentialTypeConfig,
     showModal,
     setShowModal,
     setItemSelected,
     setItemSelectedType,
 }: DocumentProp) {
-    const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<DocumentType>(
-        DocumentType.CitizenIdentity
+        DocumentType.CitizenIdentity,
     );
+    const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState<DocumentStatus | "All">(
-        "All"
+        "All",
     );
 
-    const { documents, getAll, remove } = useDocumentStore();
-    // Filter doc based on active tab
-    const filteredDocs = documents[activeTab].filter((doc) => {
-        const matchesFilter =
-            filterStatus === "All" ? true : filterStatus === doc.status;
-        const matchesSearch = JSON.stringify(doc)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
+    const documents = useDocumentStore((state) => state.documents);
+    const getAll = useDocumentStore((state) => state.getAll);
+    const remove = useDocumentStore((state) => state.remove);
 
-        return matchesSearch && matchesFilter;
-    });
+    // Filter doc based on active tab
+    const filteredDocs = useMemo(
+        () =>
+            documents[activeTab].filter((doc) => {
+                const matchesFilter =
+                    filterStatus === "All" ? true : filterStatus === doc.status;
+                const matchesSearch = JSON.stringify(doc)
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase());
+
+                return matchesSearch && matchesFilter;
+            }),
+        [documents, activeTab, filterStatus, searchQuery],
+    );
 
     const removeDocument = async () => {
-        await remove(activeTab, itemSelected.id, DocumentStatus.Revoke);
+        await remove(activeTab, itemSelected.id, DocumentStatus.Revoked);
     };
 
     useEffect(() => {
@@ -78,7 +72,7 @@ export default function Documents({
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                            Documents
+                            Documents Management
                         </h2>
                         <p className="text-gray-600">
                             Manage documents for holder
@@ -103,7 +97,6 @@ export default function Documents({
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     {Object.entries(credentialTypeConfig).map(
                         ([type, config]) => {
-                            const IconComponent = config.icon;
                             return (
                                 <motion.button
                                     key={type}
@@ -118,7 +111,7 @@ export default function Documents({
                                             : "bg-white/80 backdrop-blur-sm border border-gray-200/50 text-gray-600 hover:bg-gray-50"
                                     }`}
                                 >
-                                    <IconComponent className="w-6 h-6" />
+                                    <config.icon className="w-6 h-6" />
                                     <span className="text-sm text-center leading-tight">
                                         {config.label}
                                     </span>
@@ -131,7 +124,7 @@ export default function Documents({
                                     ></span>
                                 </motion.button>
                             );
-                        }
+                        },
                     )}
                 </div>
 
@@ -148,15 +141,18 @@ export default function Documents({
                                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                             />
                         </div>
-                        <div>
+                        <div className="relative">
+                            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                             <select
                                 value={filterStatus}
                                 onChange={(e) =>
                                     setFilterStatus(
-                                        e.target.value as DocumentStatus | "All"
+                                        e.target.value as
+                                            | DocumentStatus
+                                            | "All",
                                     )
                                 }
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium"
+                                className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none bg-white font-medium"
                             >
                                 <option value="All">All Status</option>
                                 <option value={DocumentStatus.Active}>
@@ -165,7 +161,7 @@ export default function Documents({
                                 <option value={DocumentStatus.Expired}>
                                     Expired
                                 </option>
-                                <option value={DocumentStatus.Revoke}>
+                                <option value={DocumentStatus.Revoked}>
                                     Revoked
                                 </option>
                             </select>
@@ -176,11 +172,8 @@ export default function Documents({
                 {/* Credentials Grid */}
                 {filteredDocs.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredDocs.map((doc, index) => {
+                        {filteredDocs.map((doc) => {
                             const config = credentialTypeConfig[activeTab];
-
-                            const IconComponent = config.icon;
-
                             return (
                                 <motion.div
                                     key={doc.id}
@@ -194,7 +187,7 @@ export default function Documents({
                                             <div
                                                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
                                             >
-                                                <IconComponent className="w-6 h-6 text-white" />
+                                                <config.icon className="w-6 h-6 text-white" />
                                             </div>
                                             <div>
                                                 {/* <h3 className="font-bold text-gray-900">
@@ -211,7 +204,7 @@ export default function Documents({
                                                 DocumentStatus.Active
                                                     ? "bg-emerald-100 text-emerald-700"
                                                     : doc.status ===
-                                                      DocumentStatus.Revoke
+                                                      DocumentStatus.Revoked
                                                     ? "bg-red-100 text-red-700"
                                                     : "bg-gray-100 text-gray-700"
                                             }`}
@@ -229,7 +222,7 @@ export default function Documents({
                                                         "status",
                                                         "holderDID",
                                                         "issuerDID",
-                                                    ].includes(key)
+                                                    ].includes(key),
                                             )
                                             .map(([key, value]) => (
                                                 <div
@@ -240,7 +233,7 @@ export default function Documents({
                                                         {key
                                                             .replace(
                                                                 /([A-Z])/g,
-                                                                " $1"
+                                                                " $1",
                                                             )
                                                             .trim()}
                                                         :
@@ -250,9 +243,9 @@ export default function Documents({
                                                             "string" &&
                                                         value.includes("Z")
                                                             ? new Date(
-                                                                  value
+                                                                  value,
                                                               ).toLocaleDateString(
-                                                                  "en-GB"
+                                                                  "en-GB",
                                                               )
                                                             : value}
                                                     </span>
@@ -265,9 +258,10 @@ export default function Documents({
                                         <button
                                             onClick={() => {
                                                 setShowModal(
-                                                    IssuerModal.EditDocument
+                                                    IssuerModal.EditDocument,
                                                 );
                                                 setItemSelected(doc);
+                                                setItemSelectedType(activeTab);
                                             }}
                                             className="flex-1 px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition-colors flex items-center justify-center gap-2"
                                         >
@@ -277,7 +271,7 @@ export default function Documents({
                                         <button
                                             onClick={() => {
                                                 setShowModal(
-                                                    IssuerModal.DeleteDocument
+                                                    IssuerModal.DeleteDocument,
                                                 );
                                                 setItemSelected(doc);
                                                 setItemSelectedType(activeTab);
@@ -300,12 +294,16 @@ export default function Documents({
                     </div>
                 )}
             </motion.div>
-            {showModal === IssuerModal.DeleteDocument && (
-                <DeleteModal
-                    setShowModal={setShowModal}
-                    onConfirm={removeDocument}
-                />
-            )}
+            <AnimatePresence mode="wait">
+                {showModal === IssuerModal.DeleteDocument && (
+                    <DeleteModal
+                        onClose={() => {
+                            setShowModal(IssuerModal.Null);
+                        }}
+                        onConfirm={removeDocument}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

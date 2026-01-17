@@ -7,9 +7,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface SubmissionsProp {
-    getStatusBadge: (status: string) => string;
-}
+interface SubmissionsProp {}
 const submissions = [
     {
         id: 1,
@@ -21,7 +19,7 @@ const submissions = [
     },
 ];
 
-export default function Submissions({ getStatusBadge }: SubmissionsProp) {
+export default function Submissions({}: SubmissionsProp) {
     return (
         <motion.div
             key="submissions"
@@ -92,13 +90,13 @@ export default function Submissions({ getStatusBadge }: SubmissionsProp) {
                                         <div className="text-sm text-gray-900 font-medium">
                                             {sub.timestamp}
                                         </div>
-                                        <span
+                                        {/* <span
                                             className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(
                                                 sub.status
                                             )} mt-1`}
                                         >
                                             {sub.status}
-                                        </span>
+                                        </span> */}
                                     </div>
 
                                     {sub.status === "pending" && (

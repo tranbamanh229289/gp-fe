@@ -37,8 +37,6 @@ export default function Login({ setMode }: LoginProps) {
     const [zkLoginStep, setZkLoginStep] = useState<LoginStep>(
         LoginStep.Challenge
     );
-
-    console.log(zkLoginStep);
     const [zkProof, setZkProof] = useState<ProofData>({
         pi_a: [],
         pi_b: [],
@@ -96,7 +94,7 @@ export default function Login({ setMode }: LoginProps) {
         setError("");
 
         try {
-            await new Promise((resolve) => setTimeout(resolve, 5000));
+            await new Promise((resolve) => setTimeout(resolve, 2000));
             const result = await generateProof(privateKeyInput);
 
             setZkProof(result.proof);
@@ -122,10 +120,10 @@ export default function Login({ setMode }: LoginProps) {
                 pub_signals: publicSignals,
             };
             const roleAuth = await login(proof);
-            await new Promise((resolve) => setTimeout(resolve, 5000));
+            await new Promise((resolve) => setTimeout(resolve, 2000));
             setZkLoginStep(LoginStep.Login);
             setTimeout(() => {
-                router.push(`/${roleAuth}`);
+                router.replace(`/${roleAuth}`);
             }, 1000);
         } catch (err) {
             setError(
@@ -134,7 +132,6 @@ export default function Login({ setMode }: LoginProps) {
             setZkLoginStep(LoginStep.Generate);
         } finally {
             setIsSendingProof(false);
-            setZkLoginStep(LoginStep.Challenge);
         }
     };
 

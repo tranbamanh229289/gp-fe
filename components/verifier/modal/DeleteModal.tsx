@@ -16,6 +16,7 @@ export default function DeleteModal({ onClose, onConfirm }: DeleteModalProps) {
         setLoading(false);
         onClose();
     };
+
     return (
         <AnimatePresence>
             (

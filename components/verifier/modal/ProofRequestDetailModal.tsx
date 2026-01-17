@@ -16,7 +16,7 @@ import {
     Copy,
     Check,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ProofRequestDetailModeProp {
     selectedRequest: ProofRequest;
@@ -48,6 +48,7 @@ export default function ProofRequestDetailModal({
 
     const StatusIcon = proofRequestStatusConfig[selectedRequest.status].icon;
 
+    useEffect(() => {}, []);
     return (
         <AnimatePresence>
             {selectedRequest && (
@@ -138,7 +139,7 @@ export default function ProofRequestDetailModal({
                                                 onClick={() =>
                                                     copyToClipboard(
                                                         selectedRequest.verifierDID,
-                                                        "verifierDID"
+                                                        "verifierDID",
                                                     )
                                                 }
                                                 className="p-1 hover:bg-purple-100 rounded transition-colors"
@@ -264,7 +265,7 @@ export default function ProofRequestDetailModal({
                                                         : issuer}
                                                 </code>
                                             </div>
-                                        )
+                                        ),
                                     )}
                                 </div>
                             </div>
@@ -283,7 +284,7 @@ export default function ProofRequestDetailModal({
                                     </div>
                                     <div className="space-y-2">
                                         {Object.entries(
-                                            selectedRequest.credentialSubject
+                                            selectedRequest.credentialSubject,
                                         ).map(([field, value], i) => (
                                             <div
                                                 key={i}
@@ -296,7 +297,7 @@ export default function ProofRequestDetailModal({
                                                     {JSON.stringify(
                                                         value,
                                                         null,
-                                                        2
+                                                        2,
                                                     )}
                                                 </code>
                                             </div>
@@ -316,7 +317,7 @@ export default function ProofRequestDetailModal({
                                     </div>
                                     <p className="text-sx font-bold text-gray-900">
                                         {formatDate(
-                                            selectedRequest.createdTime
+                                            selectedRequest.createdTime,
                                         )}
                                     </p>
                                 </div>
@@ -366,7 +367,7 @@ export default function ProofRequestDetailModal({
                                         }`}
                                     >
                                         {formatDate(
-                                            selectedRequest.expiresTime
+                                            selectedRequest.expiresTime,
                                         )}
                                     </p>
                                 </div>
@@ -395,7 +396,7 @@ export default function ProofRequestDetailModal({
                                                 onClick={() =>
                                                     copyToClipboard(
                                                         selectedRequest.threadId,
-                                                        "threadId"
+                                                        "threadId",
                                                     )
                                                 }
                                                 className="p-1 hover:bg-slate-100 rounded transition-colors ml-2"

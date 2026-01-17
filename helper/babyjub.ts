@@ -35,10 +35,6 @@ export function getWalletFromPrivateKey(privateKeyHex: string): BabyJubWallet {
     const publicKey = derivePublicKey(privateKey);
 
     const publicKeyCompressed = packPublicKey(publicKey);
-    console.log({
-        x: publicKey[0].toString(10),
-        y: publicKey[1].toString(10),
-    });
     return {
         privateKey: privateKeyHex,
         publicKey: {

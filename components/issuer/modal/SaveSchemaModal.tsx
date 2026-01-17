@@ -1,6 +1,15 @@
 import { DocumentType } from "@/constants/document";
-import { IssuerModal } from "@/constants/issuer";
-import { SchemaStatus, Slot } from "@/constants/schema";
+import {
+    credentialTypeConfig,
+    documentTypes,
+    IssuerModal,
+} from "@/constants/issuer";
+import {
+    documentSchemaTypeFields,
+    SchemaTypeField,
+    Slot,
+} from "@/constants/schema";
+import { useSchemaStore } from "@/store/schema.store";
 import { Attribute, Schema } from "@/types/schema";
 import { motion } from "framer-motion";
 import {
@@ -12,6 +21,7 @@ import {
     Trash2,
     X,
     AlertCircle,
+    Loader2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -21,52 +31,55 @@ interface SaveSchemaModalProps {
     schema?: Schema;
 }
 
-const fieldTypes = ["string", "integer", "number", "date", "boolean"];
-
-const currentType = {
-    type: DocumentType.CitizenIdentity,
-    label: "Citizen Identity",
-    icon: "🪪",
-    gradient: "from-fuchsia-500 → to-purple-600",
-};
 export default function SaveSchemaModal({
     setShowModal,
 }: SaveSchemaModalProps) {
-    const [formData, setFormData] = useState<Partial<Schema>>({
+    const [documentType, setDocumentType] = useState<DocumentType>(
+        DocumentType.CitizenIdentity
+    );
+    const [attributesOption, setAttributesOption] = useState<SchemaTypeField[]>(
+        documentSchemaTypeFields[documentType as DocumentType]
+    );
+    const configUI = credentialTypeConfig[documentType as DocumentType];
+
+    const [formData, setFormData] = useState({
         title: "",
         type: "",
         version: "1.0.0",
         description: "",
         isMerklized: false,
+        attributes: [] as Attribute[],
     });
 
-    const [attributes, setAttributes] = useState<Attribute[]>([
-        {
-            name: "",
-            title: "",
-            type: "string",
-            description: "",
-            required: false,
-            slot: Slot.SlotIndexA,
-        },
-    ]);
+    const createSchema = useSchemaStore((state) => state.createSchema);
+    const loading = useSchemaStore((state) => state.loading);
 
     const addAttribute = () => {
-        setAttributes([
-            ...attributes,
-            {
-                name: "",
-                title: "",
-                type: "string",
-                description: "",
-                required: false,
-                slot: Slot.SlotIndexA,
-            },
-        ]);
+        setFormData((state) => {
+            return {
+                ...state,
+                attributes: [
+                    ...state.attributes,
+                    {
+                        name: attributesOption[0].name,
+                        title: "",
+                        type: "string",
+                        description: "",
+                        required: false,
+                        slot: Slot.SlotIndexA,
+                    },
+                ],
+            };
+        });
     };
 
     const removeAttribute = (index: number) => {
-        setAttributes(attributes.filter((_, i) => i !== index));
+        setFormData((state) => {
+            return {
+                ...state,
+                attributes: state.attributes.filter((_, i) => i !== index),
+            };
+        });
     };
 
     const updateAttribute = (
@@ -74,30 +87,84 @@ export default function SaveSchemaModal({
         key: keyof Attribute,
         value: any
     ) => {
-        const updated = [...attributes];
+        const updated = [...formData.attributes];
+
         updated[index] = { ...updated[index], [key]: value };
-        setAttributes(updated);
+        if (key === "name") {
+            updated[index] = {
+                ...updated[index],
+                type: getAttributeByName(value).type,
+            };
+        }
+
+        setFormData((state) => {
+            return { ...state, attributes: updated };
+        });
     };
 
-    const handleSubmit = () => {
-        const schemaData: Partial<Schema> = {
-            ...formData,
-            attributes,
-        };
-        console.log("Schema data:", schemaData);
-        // Handle submit logic here
+    const updateDocumentType = (value: DocumentType) => {
+        setDocumentType(value);
+        setAttributesOption(documentSchemaTypeFields[value]);
+        setFormData((state) => {
+            return {
+                ...state,
+                attributes: [],
+            };
+        });
     };
 
+    const getAttributeByName = (name: string): SchemaTypeField => {
+        return (
+            attributesOption.find((f) => f.name === name) || {
+                name,
+                type: "unknown",
+            }
+        );
+    };
+
+    const onConfirm = async () => {
+        if (isFormValid()) {
+            const schemaData: Partial<Schema> = {
+                ...formData,
+                documentType: documentType,
+            };
+            await createSchema(schemaData);
+
+            setShowModal(IssuerModal.Null);
+        }
+    };
+
+    const checkSlot = () => {
+        if (!formData.isMerklized) {
+            formData.attributes.forEach((item) => {
+                if (
+                    item.slot === Slot.SlotIndexA ||
+                    item.slot === Slot.SlotIndexB ||
+                    item.slot === Slot.SlotDataA ||
+                    item.slot === Slot.SlotDataB
+                ) {
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+        }
+        return true;
+    };
     const isFormValid = () => {
         return (
             formData.title &&
             formData.type &&
             formData.version &&
-            attributes.length > 0 &&
-            attributes.every((attr) => attr.name && attr.title)
+            formData.description &&
+            formData.attributes.length > 0 &&
+            formData.attributes.every(
+                (attr) =>
+                    attr.name && attr.title && attr.type && attr.description
+            ) &&
+            checkSlot()
         );
     };
-
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -120,7 +187,7 @@ export default function SaveSchemaModal({
             >
                 {/* Header */}
                 <div
-                    className={`relative bg-gradient-to-r ${currentType.gradient} p-8 overflow-hidden`}
+                    className={`relative bg-gradient-to-r ${configUI.gradient} p-8 overflow-hidden`}
                 >
                     <div className="absolute inset-0 bg-black/5"></div>
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
@@ -136,7 +203,7 @@ export default function SaveSchemaModal({
                                 }}
                                 className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl shadow-lg border border-white/30"
                             >
-                                {currentType.icon}
+                                <configUI.icon className="w-10 h-10 text-white" />
                             </motion.div>
                             <div>
                                 <h3 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -170,7 +237,7 @@ export default function SaveSchemaModal({
                     >
                         <div className="flex items-center gap-3">
                             <div
-                                className={`p-2 rounded-xl bg-gradient-to-br ${currentType.gradient}`}
+                                className={`p-2 rounded-xl bg-gradient-to-br ${configUI.gradient}`}
                             >
                                 <FileText className="w-5 h-5 text-white" />
                             </div>
@@ -198,10 +265,31 @@ export default function SaveSchemaModal({
                                     className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:ring-4 focus:ring-purple-500 focus:ring-opacity-20 outline-none transition-all"
                                 />
                             </div>
-
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Type <span className="text-red-500">*</span>
+                                    Document Type{""}
+                                    <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={documentType}
+                                    onChange={(e) =>
+                                        updateDocumentType(
+                                            e.target.value as DocumentType
+                                        )
+                                    }
+                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 outline-none"
+                                >
+                                    {documentTypes.map((type) => (
+                                        <option key={type} value={type}>
+                                            {type}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Schema Type{" "}
+                                    <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
@@ -236,8 +324,8 @@ export default function SaveSchemaModal({
                                 />
                             </div>
 
-                            <div>
-                                <label className="flex items-center gap-3 cursor-pointer">
+                            <div className="flex flex-col justify-end">
+                                <label className="flex flex items-center gap-3 cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={formData.isMerklized}
@@ -289,7 +377,7 @@ export default function SaveSchemaModal({
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div
-                                    className={`p-2 rounded-xl bg-gradient-to-br ${currentType.gradient}`}
+                                    className={`p-2 rounded-xl bg-gradient-to-br ${configUI.gradient}`}
                                 >
                                     <Database className="w-5 h-5 text-white" />
                                 </div>
@@ -308,7 +396,7 @@ export default function SaveSchemaModal({
                             </motion.button>
                         </div>
 
-                        {attributes.length === 0 && (
+                        {formData.attributes.length === 0 && (
                             <div className="p-8 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 text-center">
                                 <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-600 font-medium">
@@ -321,7 +409,7 @@ export default function SaveSchemaModal({
                         )}
 
                         <div className="space-y-4">
-                            {attributes.map((attr, index) => (
+                            {formData.attributes.map((attr, index) => (
                                 <motion.div
                                     key={index}
                                     initial={{ opacity: 0, x: -20 }}
@@ -337,8 +425,8 @@ export default function SaveSchemaModal({
                                                         *
                                                     </span>
                                                 </label>
-                                                <input
-                                                    type="text"
+
+                                                <select
                                                     value={attr.name}
                                                     onChange={(e) =>
                                                         updateAttribute(
@@ -347,9 +435,38 @@ export default function SaveSchemaModal({
                                                             e.target.value
                                                         )
                                                     }
-                                                    placeholder="e.g. birthday"
                                                     className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 outline-none font-mono text-sm"
-                                                />
+                                                >
+                                                    {attributesOption?.map(
+                                                        (item, index) => (
+                                                            <option
+                                                                key={index}
+                                                                value={
+                                                                    item.name
+                                                                }
+                                                            >
+                                                                {item.name}
+                                                            </option>
+                                                        )
+                                                    )}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-2">
+                                                    Type{""}
+                                                    <span className="text-red-500">
+                                                        *
+                                                    </span>
+                                                </label>
+                                                <label className="w-full outline-none">
+                                                    <span className="text">
+                                                        {
+                                                            getAttributeByName(
+                                                                attr.name
+                                                            ).type
+                                                        }
+                                                    </span>
+                                                </label>
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-gray-600 mb-2">
@@ -372,34 +489,7 @@ export default function SaveSchemaModal({
                                                     className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 outline-none text-sm"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-2">
-                                                    Type{""}
-                                                    <span className="text-red-500">
-                                                        *
-                                                    </span>
-                                                </label>
-                                                <select
-                                                    value={attr.type}
-                                                    onChange={(e) =>
-                                                        updateAttribute(
-                                                            index,
-                                                            "type",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 outline-none"
-                                                >
-                                                    {fieldTypes.map((type) => (
-                                                        <option
-                                                            key={type}
-                                                            value={type}
-                                                        >
-                                                            {type}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
+
                                             {!formData.isMerklized && (
                                                 <div>
                                                     <label className="block text-xs font-semibold text-gray-600 mb-2">
@@ -527,21 +617,22 @@ export default function SaveSchemaModal({
                                 scale: isFormValid() ? 0.98 : 1,
                             }}
                             onClick={() => {
-                                if (isFormValid()) {
-                                    handleSubmit();
-                                    setShowModal(IssuerModal.Null);
-                                }
+                                onConfirm();
                             }}
                             disabled={!isFormValid()}
                             className={`flex-1 py-4 px-6 rounded-xl font-bold text-white shadow-lg transition-all ${
                                 isFormValid()
-                                    ? `bg-gradient-to-r ${currentType.gradient} hover:shadow-xl`
+                                    ? `bg-gradient-to-r ${configUI.gradient} hover:shadow-xl`
                                     : "bg-gray-300 cursor-not-allowed"
                             }`}
                         >
                             <div className="flex items-center justify-center gap-2">
-                                <Save size={20} />
-                                "Create" Schema
+                                {loading ? (
+                                    <Loader2 className="animate-spin" />
+                                ) : (
+                                    <Save size={20} />
+                                )}
+                                Create Schema
                             </div>
                         </motion.button>
                     </div>

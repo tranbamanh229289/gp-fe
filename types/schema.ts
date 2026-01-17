@@ -1,8 +1,11 @@
+import { DocumentType } from "@/constants/document";
 import { SchemaStatus, Slot } from "@/constants/schema";
 
 export interface Schema {
     id: string;
     issuerDID: string;
+    issuerName: string;
+    documentType: DocumentType;
     hash: string;
     title: string;
     type: string;
