@@ -2,11 +2,11 @@ import { QueryValueType } from "@/types/credential_zkproof";
 import { Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { Operators } from "@0xpolygonid/js-sdk";
+import { Operator } from "@/constants/credential_zkproof";
 
 interface DynamicValueInputProps {
     fieldType: string;
-    operator: Operators;
+    operator: Operator;
     value: QueryValueType;
     onChange: (value: QueryValueType) => void;
 }
@@ -63,7 +63,7 @@ export const DynamicValueInput = ({
             }
         }
     };
-    if (operator === Operators.EXISTS) {
+    if (operator === Operator.$exists) {
         return (
             <motion.select
                 initial={{ opacity: 0, y: -10 }}
@@ -79,7 +79,7 @@ export const DynamicValueInput = ({
         );
     }
 
-    if (operator === Operators.IN || operator === Operators.NIN) {
+    if (operator === Operator.$in || operator === Operator.$nin) {
         return (
             <motion.div
                 initial={{ opacity: 0 }}
@@ -102,7 +102,7 @@ export const DynamicValueInput = ({
                                 onChange={(e) =>
                                     handleArrayValueChange(
                                         index,
-                                        e.target.value
+                                        e.target.value,
                                     )
                                 }
                                 placeholder={`Value ${index + 1}`}
@@ -139,7 +139,7 @@ export const DynamicValueInput = ({
         );
     }
 
-    if (operator === Operators.BETWEEN || operator === Operators.NONBETWEEN) {
+    if (operator === Operator.$between || operator === Operator.$nonbetween) {
         return (
             <motion.div
                 initial={{ opacity: 0 }}
@@ -230,20 +230,20 @@ export const DynamicValueInput = ({
 export const validateConditionValue = (
     value: string,
     fieldType: string,
-    operator: Operators
+    operator: Operator,
 ): string | null => {
-    if (!value && operator !== Operators.EXISTS) {
+    if (!value && operator !== Operator.$exists) {
         return "Value is required";
     }
 
-    if (operator === Operators.EXISTS) {
+    if (operator === Operator.$exists) {
         if (value !== "true" && value !== "false") {
             return "Value must be true or false";
         }
         return null;
     }
 
-    if (operator === Operators.IN || operator === Operators.NIN) {
+    if (operator === Operator.$in || operator === Operator.$nin) {
         try {
             const parsed = JSON.parse(value);
             if (!Array.isArray(parsed) || parsed.length === 0) {
@@ -266,7 +266,7 @@ export const validateConditionValue = (
         return null;
     }
 
-    if (operator === Operators.BETWEEN) {
+    if (operator === Operator.$between) {
         try {
             const parsed = JSON.parse(value);
             if (!Array.isArray(parsed) || parsed.length !== 2) {

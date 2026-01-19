@@ -1,12 +1,4 @@
-import {
-    CheckCircle,
-    Clock,
-    XCircle,
-    ExternalLink,
-    Calendar,
-    Timer,
-    Building2,
-} from "lucide-react";
+import { Clock, ExternalLink, Calendar, Timer, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { credentialTypeConfig } from "@/constants/issuer";
 import { useCredentialRequestStore } from "@/store/credential_request.store";
@@ -15,31 +7,15 @@ import {
     CredentialRequestStatus,
     credentialStatusConfig,
 } from "@/constants/credential_request";
+import { formatDate, isExpired } from "@/helper/dateTime";
 
 export default function MyCredentialRequest() {
     const getCredentialRequests = useCredentialRequestStore(
-        (state) => state.getCredentialRequests
+        (state) => state.getCredentialRequests,
     );
     const credentialRequests = useCredentialRequestStore(
-        (state) => state.credentialRequests
+        (state) => state.credentialRequests,
     );
-
-    const formatDate = (date: number) => {
-        return new Date(date * 1000).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
-    };
-
-    const formatDuration = (expiration: number) => {
-        return expiration / (3600 * 24);
-    };
-
-    const isExpired = (expiresTime: number) => {
-        const nowInSeconds = () => Math.floor(Date.now() / 1000);
-        return expiresTime < nowInSeconds();
-    };
 
     useEffect(() => {
         getCredentialRequests();
@@ -206,8 +182,7 @@ export default function MyCredentialRequest() {
                                             </span>
                                         </div>
                                         <p className="text-sm font-semibold text-slate-900">
-                                            {formatDuration(request.expiration)}{" "}
-                                            days
+                                            {formatDate(request.expiration)}
                                         </p>
                                     </div>
                                 </div>

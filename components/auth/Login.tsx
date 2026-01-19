@@ -35,7 +35,7 @@ export default function Login({ setMode }: LoginProps) {
     const [showPrivateKeyInput, setShowPrivateKeyInput] = useState(false);
     const [privateKeyInput, setPrivateKeyInput] = useState<string>("");
     const [zkLoginStep, setZkLoginStep] = useState<LoginStep>(
-        LoginStep.Challenge
+        LoginStep.Challenge,
     );
     const [zkProof, setZkProof] = useState<ProofData>({
         pi_a: [],
@@ -53,7 +53,7 @@ export default function Login({ setMode }: LoginProps) {
 
     // hook
     const router = useRouter();
-    const { requestChallenge, generateProof, cancel, challenge } =
+    const { requestChallenge, generateAuthV3Proof, cancel, challenge } =
         useAuthZkProofStore();
     const { login } = useIdentityStore();
 
@@ -95,14 +95,14 @@ export default function Login({ setMode }: LoginProps) {
 
         try {
             await new Promise((resolve) => setTimeout(resolve, 2000));
-            const result = await generateProof(privateKeyInput);
+            const result = await generateAuthV3Proof(privateKeyInput);
 
             setZkProof(result.proof);
             setPublicSignals(result.publicSignals);
             setZkLoginStep(LoginStep.Verify);
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : "Failed to generate proof"
+                err instanceof Error ? err.message : "Failed to generate proof",
             );
         } finally {
             setIsProofLoading(false);
@@ -127,7 +127,7 @@ export default function Login({ setMode }: LoginProps) {
             }, 1000);
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : "Verification failed"
+                err instanceof Error ? err.message : "Verification failed",
             );
             setZkLoginStep(LoginStep.Generate);
         } finally {
@@ -473,7 +473,7 @@ export default function Login({ setMode }: LoginProps) {
                                                         className="w-64 h-64"
                                                         dangerouslySetInnerHTML={{
                                                             __html: generateQRCodeSVG(
-                                                                challenge
+                                                                challenge,
                                                             ),
                                                         }}
                                                     />
@@ -525,7 +525,7 @@ export default function Login({ setMode }: LoginProps) {
                                                             onChange={(e) => {
                                                                 setPrivateKeyInput(
                                                                     e.target
-                                                                        .value
+                                                                        .value,
                                                                 );
                                                                 setError("");
                                                             }}
@@ -535,12 +535,12 @@ export default function Login({ setMode }: LoginProps) {
                                                         <button
                                                             onMouseDown={() =>
                                                                 setShowPrivateKeyInput(
-                                                                    !showPrivateKeyInput
+                                                                    !showPrivateKeyInput,
                                                                 )
                                                             }
                                                             onMouseUp={() =>
                                                                 setShowPrivateKeyInput(
-                                                                    !showPrivateKeyInput
+                                                                    !showPrivateKeyInput,
                                                                 )
                                                             }
                                                             className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400 hover:text-purple-300 transition-colors"

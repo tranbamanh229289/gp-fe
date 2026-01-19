@@ -34,7 +34,7 @@ export default function SaveDocumentModal({
     setShowModal,
 }: SaveModalProps) {
     const [selectedType, setSelectedType] = useState<DocumentType>(
-        itemSelectedType as DocumentType
+        itemSelectedType as DocumentType,
     );
 
     const [formData, setFormData] = useState<IssuerItemSelected>(itemSelected);
@@ -75,7 +75,7 @@ export default function SaveDocumentModal({
                     await update(
                         selectedType as DocumentType,
                         itemSelected.id,
-                        data
+                        data,
                     );
                 }
             }
@@ -397,34 +397,38 @@ export default function SaveDocumentModal({
                                                         field.name as keyof DocumentData
                                                     ]
                                                         ? new Date(
-                                                              formData[
-                                                                  field.name as keyof DocumentData
-                                                              ] as string
+                                                              Number(
+                                                                  formData[
+                                                                      field.name as keyof DocumentData
+                                                                  ],
+                                                              ) * 1000,
                                                           )
                                                               .toISOString()
                                                               .split("T")[0]
                                                         : ""
                                                 }
                                                 onChange={(e) => {
-                                                    // Convert to ISO-8601 format for Go time.Time
                                                     const dateValue =
                                                         e.target.value;
                                                     if (dateValue) {
-                                                        // Create date at midnight UTC
-                                                        const isoDate =
-                                                            new Date(
-                                                                dateValue +
-                                                                    "T00:00:00.000Z"
-                                                            ).toISOString();
+                                                        const timestamp =
+                                                            Math.floor(
+                                                                new Date(
+                                                                    dateValue +
+                                                                        "T00:00:00Z",
+                                                                ).getTime() /
+                                                                    1000,
+                                                            );
+
                                                         setFormData({
                                                             ...formData,
                                                             [field.name]:
-                                                                isoDate,
+                                                                timestamp,
                                                         });
                                                     } else {
                                                         setFormData({
                                                             ...formData,
-                                                            [field.name]: "",
+                                                            [field.name]: null,
                                                         });
                                                     }
                                                 }}
@@ -472,7 +476,8 @@ export default function SaveDocumentModal({
                                                     [field.name]:
                                                         field.type === "number"
                                                             ? Number(
-                                                                  e.target.value
+                                                                  e.target
+                                                                      .value,
                                                               )
                                                             : e.target.value,
                                                 });

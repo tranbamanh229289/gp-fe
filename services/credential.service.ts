@@ -9,7 +9,6 @@ import {
     cacheLoader,
     SubjectPosition,
     MerklizedRootPosition,
-    Iden3SparseMerkleTreeProof,
 } from "@0xpolygonid/js-sdk";
 import { randomIntSecure } from "@/helper/randomBit";
 import path from "path";
@@ -21,7 +20,7 @@ export class CredentialService {
         this.credentialRequest = credentialRequest;
     }
     createVerifiableCredential(
-        credentialData: Record<string, any>
+        credentialData: Record<string, any>,
     ): W3CCredential {
         const issuer: DID = DID.parse(this.credentialRequest.issuerDID);
 
@@ -37,28 +36,29 @@ export class CredentialService {
             credentialSubject: credentialSubject,
             context: [this.credentialRequest.contextURL],
             expiration: this.credentialRequest.expiration,
-            issuanceDate: Date.now(),
+            issuanceDate: Date.now() / 1000,
             revocationOpts: {
                 id: path.join(
                     process.env.NEXT_PUBLIC_BASE_URL ??
                         "http://localhost:8080/api/v1",
-                    "revocation"
+                    "revocation",
                 ),
                 type: CredentialStatusType.SparseMerkleTreeProof,
-                nonce: randomIntSecure(2 ^ 32),
+                nonce: randomIntSecure(2 ** 32),
             },
         };
 
         const vc = W3CCredential.fromCredentialRequest(
             issuer,
-            sdkCredentialRequest
+            sdkCredentialRequest,
         );
-        console.log(vc);
-
         return vc;
     }
 
-    createCoreClaim(vc: W3CCredential, isMerklized: boolean): Promise<Claim> {
+    async createCoreClaim(
+        vc: W3CCredential,
+        isMerklized: boolean,
+    ): Promise<Claim> {
         let options: CoreClaimCreationOptions = {
             revNonce: vc.credentialStatus.revocationNonce as number,
             version: 0,
@@ -73,13 +73,15 @@ export class CredentialService {
                 merklizedRootPosition: MerklizedRootPosition.Index,
             };
         }
-        const coreClaim = vc.toCoreClaim(options);
+        const coreClaim = await vc.toCoreClaim(options);
+        console.log(coreClaim);
+
         return coreClaim;
     }
 }
 
 export const createCredentialService = (
-    credentialRequest: CredentialRequest
+    credentialRequest: CredentialRequest,
 ) => {
     return new CredentialService(credentialRequest);
 };

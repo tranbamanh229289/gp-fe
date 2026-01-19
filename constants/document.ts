@@ -28,7 +28,7 @@ export enum DegreeType {
 
 export enum DegreeClassification {
     Excellent = "excellent",
-    VeryGood = "very good",
+    VeryGood = "very_good",
     Good = "good",
     Average = "average",
     Pass = "pass",

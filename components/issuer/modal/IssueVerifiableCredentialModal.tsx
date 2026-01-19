@@ -22,6 +22,7 @@ import { convertValue } from "@/helper/convertValue";
 import { credentialTypeConfig } from "@/constants/issuer";
 import { useIdentityStore } from "@/store/identity.store";
 import { getPublicKey } from "@/helper/babyjub";
+import { formatDate } from "@/helper/dateTime";
 
 interface ReviewCredentialRequestModalProps {
     request: CredentialRequest;
@@ -41,31 +42,17 @@ export function ReviewCredentialRequestModal({
     const config = credentialTypeConfig[request.documentType];
 
     const fetchDocumentByHolderDID = useDocumentStore(
-        (state) => state.fetchDocumentByHolderDID
+        (state) => state.fetchDocumentByHolderDID,
     );
     const fetchSchemaAttributes = useSchemaStore(
-        (state) => state.fetchSchemaAttributes
+        (state) => state.fetchSchemaAttributes,
     );
 
     const issueVerifiableClaim = useVerifiableCredential(
-        (state) => state.issueVerifiableCredential
+        (state) => state.issueVerifiableCredential,
     );
     const issueLoading = useVerifiableCredential((state) => state.loading);
-    console.log(issueLoading);
     const publicKey = useIdentityStore((state) => state.publicKey);
-
-    const formatDate = (timestamp: number) => {
-        return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-    const formatDuration = (duration: number) => {
-        return new Date(duration * 1000).getDate();
-    };
 
     const getCredentialData = (): Record<string, any> => {
         return schemaAttributes.reduce((acc, item) => {
@@ -81,6 +68,7 @@ export function ReviewCredentialRequestModal({
             try {
                 if (!privateKey) throw new Error("Missing private key");
                 const data = getCredentialData();
+
                 await issueVerifiableClaim(request, data, privateKey);
             } catch (err) {
                 console.error("Issue credential failed:", err);
@@ -113,10 +101,10 @@ export function ReviewCredentialRequestModal({
             try {
                 const credentialData = await fetchDocumentByHolderDID(
                     request.documentType,
-                    request.holderDID
+                    request.holderDID,
                 );
                 const schemaAttributes = await fetchSchemaAttributes(
-                    request.schemaId
+                    request.schemaId,
                 );
 
                 setCredentialData(credentialData);
@@ -251,30 +239,22 @@ export function ReviewCredentialRequestModal({
                                     <Clock className="w-4 h-4 text-gray-600" />
                                     Timeline
                                 </h3>
-                                <div className="grid grid-cols-5 gap-3">
-                                    <div className="p-3 col-span-2 rounded-xl bg-gray-50 border border-gray-200">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 col-span-1 rounded-xl bg-gray-50 border border-gray-200">
                                         <div className="text-xs text-gray-600 mb-1">
-                                            Created
+                                            Issuance Date
                                         </div>
                                         <div className="text-sm font-semibold text-gray-900">
-                                            {formatDate(request.createdTime)}
+                                            {formatDate(Date.now() / 1000)}
                                         </div>
                                     </div>
-                                    <div className="p-3  col-span-2 rounded-xl bg-gray-50 border border-gray-200">
-                                        <div className="text-xs text-gray-600 mb-1">
-                                            Expires
-                                        </div>
-                                        <div className="text-sm font-semibold text-gray-900">
-                                            {formatDate(request.expiresTime)}
-                                        </div>
-                                    </div>
+
                                     <div className="p-3  col-span-1 rounded-xl bg-gray-50 border border-gray-200">
                                         <div className="text-xs text-gray-600 mb-1">
                                             Expiration
                                         </div>
                                         <div className="text-sm font-semibold text-gray-900">
-                                            {formatDuration(request.expiration)}{" "}
-                                            days
+                                            {formatDate(request.expiration)}{" "}
                                         </div>
                                     </div>
                                 </div>
@@ -313,7 +293,7 @@ export function ReviewCredentialRequestModal({
                                                     {String(value)}
                                                 </span>
                                             </motion.div>
-                                        )
+                                        ),
                                     )}
                                 </div>
                             </div>

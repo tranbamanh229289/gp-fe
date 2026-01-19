@@ -19,6 +19,7 @@ import {
     proofRequestStatusConfig,
 } from "@/constants/credential_zkproof";
 import DeleteModal from "./modal/DeleteModal";
+import { formatDate, isExpired } from "@/helper/dateTime";
 
 interface ProofRequestsProp {
     modal: VerifierModal;
@@ -27,37 +28,24 @@ interface ProofRequestsProp {
 
 export default function ProofRequests({ modal, setModal }: ProofRequestsProp) {
     const proofRequests = useCredentialZKProofStore(
-        (state) => state.proofRequests
+        (state) => state.proofRequests,
     );
     const getAllZkProofRequests = useCredentialZKProofStore(
-        (state) => state.getAllZkProofRequests
+        (state) => state.getAllZkProofRequests,
     );
     const updateZkProofRequest = useCredentialZKProofStore(
-        (state) => state.updateZkProofRequest
+        (state) => state.updateZkProofRequest,
     );
 
     const [selectedRequest, setSelectedRequest] = useState<ProofRequest | null>(
-        null
+        null,
     );
-
-    const formatDate = (timestamp: number) => {
-        return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
-    };
-
-    const isExpired = (expiresTime: number) => {
-        const nowInSeconds = () => Math.floor(Date.now() / 1000);
-        return expiresTime < nowInSeconds();
-    };
 
     const removeProofRequest = async () => {
         try {
             await updateZkProofRequest(
                 selectedRequest?.id ?? "",
-                ProofRequestStatus.Cancelled
+                ProofRequestStatus.Cancelled,
             );
         } catch (err) {
             console.log(err);
@@ -178,7 +166,7 @@ export default function ProofRequests({ modal, setModal }: ProofRequestsProp) {
                                                     <Calendar className="w-3.5 h-3.5" />
                                                     <span>
                                                         {formatDate(
-                                                            request.createdTime
+                                                            request.createdTime,
                                                         )}
                                                     </span>
                                                 </div>
@@ -192,7 +180,7 @@ export default function ProofRequests({ modal, setModal }: ProofRequestsProp) {
                                                     <Timer className="w-3.5 h-3.5" />
                                                     <span>
                                                         {formatDate(
-                                                            request.expiresTime
+                                                            request.expiresTime,
                                                         )}
                                                     </span>
                                                 </div>
@@ -203,10 +191,10 @@ export default function ProofRequests({ modal, setModal }: ProofRequestsProp) {
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => {
                                                         setSelectedRequest(
-                                                            request
+                                                            request,
                                                         );
                                                         setModal(
-                                                            VerifierModal.ProofRequestDetail
+                                                            VerifierModal.ProofRequestDetail,
                                                         );
                                                     }}
                                                     className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium transition-all text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md group"
@@ -220,10 +208,10 @@ export default function ProofRequests({ modal, setModal }: ProofRequestsProp) {
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => {
                                                         setSelectedRequest(
-                                                            request
+                                                            request,
                                                         );
                                                         setModal(
-                                                            VerifierModal.DeleteProofRequest
+                                                            VerifierModal.DeleteProofRequest,
                                                         );
                                                     }}
                                                     className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-medium transition-all text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md group"
@@ -242,8 +230,6 @@ export default function ProofRequests({ modal, setModal }: ProofRequestsProp) {
                 {modal == VerifierModal.ProofRequestDetail && (
                     <ProofRequestDetailModal
                         selectedRequest={selectedRequest as ProofRequest}
-                        formatDate={formatDate}
-                        isExpired={isExpired}
                         onClose={() => {
                             setModal(VerifierModal.Null);
                             setSelectedRequest(null);

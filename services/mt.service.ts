@@ -24,9 +24,8 @@ import {
 import { Hash, InMemoryDB, Merkletree, str2Bytes } from "@iden3/js-merkletree";
 import { Signature } from "@zk-kit/eddsa-poseidon";
 import { StateService } from "./state.service";
-import * as snarkjs from "snarkjs";
+
 import { MerkleTreeProof } from "@/types/auth_zkproof";
-import { VerifiableCredential } from "@/types/verifiable_credential";
 
 class MTService {
     private wallet: BabyJubWallet;
@@ -36,22 +35,14 @@ class MTService {
     private rootsTree: Merkletree;
     private stateService: StateService;
     private MTLevel: number;
-    private authV3WasmPath: string;
-    private authV3ZkeyPath: string;
+
     private initialized = false;
 
     constructor(privateKey: string) {
         this.wallet = getWalletFromPrivateKey(privateKey);
         this.did = new DID();
         this.MTLevel = Number(process.env.NEXT_PUBLIC_MT_LEVEL) || 40;
-        this.authV3WasmPath =
-            process.env.NEXT_PUBLIC_AUTH_V3_WASM_PATH ||
-            "./circuits/authV3/circuit.wasm";
-        this.authV3ZkeyPath =
-            process.env.NEXT_PUBLIC_AUTH_V3_ZKEY_PATH ||
-            "./circuits/authV3/circuit_final.zkey";
 
-        // ✅ Create separate DB for each tree!
         this.claimsTree = new Merkletree(
             new InMemoryDB(str2Bytes("")),
             true,
@@ -94,6 +85,7 @@ class MTService {
     signClaim(claim: Claim): Signature {
         const hiHv = claim.hiHv();
         const messageHash = Poseidon.hash([hiHv.hi, hiHv.hv]);
+
         return signPoseidon(messageHash, this.wallet.privateKey);
     }
 
@@ -244,35 +236,6 @@ class MTService {
         };
 
         return inputs;
-    }
-
-    async credentialAtomicQueryV3OffchainInput(vc: VerifiableCredential) {}
-
-    async generateZKProof(inputs: snarkjs.CircuitSignals): Promise<{
-        proof: snarkjs.Groth16Proof;
-        publicSignals: snarkjs.PublicSignals;
-    }> {
-        if (!this.authV3WasmPath || !this.authV3ZkeyPath) {
-            throw new Error(
-                "AUTH_V3_WASM_PATH and AUTH_V3_ZKEY_PATH environment variables must be set",
-            );
-        }
-
-        try {
-            const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-                inputs,
-                this.authV3WasmPath,
-                this.authV3ZkeyPath,
-            );
-
-            return { proof, publicSignals };
-        } catch (error) {
-            throw new Error(
-                `Failed to generate proof: ${
-                    error instanceof Error ? error.message : String(error)
-                }`,
-            );
-        }
     }
 
     /**

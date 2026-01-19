@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { ProofType, W3CCredential } from "@0xpolygonid/js-sdk";
 import { useVerifiableCredential } from "@/store/verifiable_credential.store";
 import { IssuerModal } from "@/constants/issuer";
+import { formatDate, formatDateTime } from "@/helper/dateTime";
 
 interface ExpandedRowState {
     [key: string]: boolean;
@@ -87,24 +88,6 @@ export default function VerifiableCredential({
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return {
-            full: date.toLocaleString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-            }),
-            short: date.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-            }),
-        };
     };
 
     return (
@@ -268,278 +251,182 @@ export default function VerifiableCredential({
                             </thead>
                             <tbody className="divide-y divide-violet-100/50">
                                 {verifiableCredentials.map((vc, index) => {
-                                    const isExpanded = expandedRows[vc.id];
                                     const proofTypes = getProofTypes(vc);
                                     const status = getCredentialStatus(vc);
 
                                     return (
-                                        <>
-                                            <motion.tr
-                                                key={vc.id}
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{
-                                                    delay: index * 0.05,
-                                                }}
-                                                className="hover:bg-gradient-to-r hover:from-violet-50/50 hover:via-fuchsia-50/50 hover:to-pink-50/50 transition-all duration-300 group"
-                                            >
-                                                <td className="px-6 py-6">
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <code className="text-sm font-bold text-slate-900 bg-gradient-to-r from-violet-100 to-fuchsia-100 px-3 py-1.5 rounded-lg border border-violet-200">
-                                                                {vc.type[1]}
-                                                            </code>
-                                                            <a
-                                                                href={
-                                                                    vc[
-                                                                        "@context"
-                                                                    ][2]
-                                                                }
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-semibold transition-colors group"
-                                                                onClick={(e) =>
-                                                                    e.stopPropagation()
-                                                                }
-                                                            >
-                                                                <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                                                            </a>
-                                                        </div>
-
-                                                        <button
-                                                            onClick={() =>
-                                                                toggleRow(vc.id)
+                                        <motion.tr
+                                            key={vc.id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{
+                                                delay: index * 0.05,
+                                            }}
+                                            className="hover:bg-gradient-to-r hover:from-violet-50/50 hover:via-fuchsia-50/50 hover:to-pink-50/50 transition-all duration-300 group"
+                                        >
+                                            <td className="px-6 py-6">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <code className="text-sm font-bold text-slate-900 bg-gradient-to-r from-violet-100 to-fuchsia-100 px-3 py-1.5 rounded-lg border border-violet-200">
+                                                            {vc.type[1]}
+                                                        </code>
+                                                        <a
+                                                            href={
+                                                                vc[
+                                                                    "@context"
+                                                                ][2]
                                                             }
-                                                            className="flex items-center gap-1 text-xs text-violet-600 hover:text-fuchsia-600 font-bold transition-colors"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-semibold transition-colors group"
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
                                                         >
-                                                            <motion.div
-                                                                animate={{
-                                                                    rotate: isExpanded
-                                                                        ? 180
-                                                                        : 0,
-                                                                }}
-                                                                transition={{
-                                                                    duration: 0.3,
-                                                                }}
-                                                            >
-                                                                <ChevronDown className="w-4 h-4" />
-                                                            </motion.div>
-                                                            {isExpanded
-                                                                ? "Hide details"
-                                                                : "Show details"}
-                                                        </button>
+                                                            <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                                        </a>
                                                     </div>
-                                                </td>
 
-                                                <td className="px-6 py-6">
-                                                    <div className="flex items-center gap-3">
-                                                        <div
-                                                            className={`w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 flex items-center justify-center`}
-                                                        >
-                                                            <Shield className="w-6 h-6 text-white" />
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-xs text-violet-600 font-semibold">
-                                                                W3C Verified
-                                                            </div>
+                                                    <button
+                                                        onClick={() =>
+                                                            toggleRow(vc.id)
+                                                        }
+                                                        className="flex items-center gap-1 text-xs text-violet-600 hover:text-fuchsia-600 font-bold transition-colors"
+                                                    ></button>
+                                                </div>
+                                            </td>
+
+                                            <td className="px-6 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div
+                                                        className={`w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 flex items-center justify-center`}
+                                                    >
+                                                        <Shield className="w-6 h-6 text-white" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs text-violet-600 font-semibold">
+                                                            W3C Verified
                                                         </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-6">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {proofTypes.map(
-                                                            (
-                                                                proofType,
-                                                                idx,
-                                                            ) => (
-                                                                <span
-                                                                    key={idx}
-                                                                    className={`px-3 py-1.5 rounded-xl text-xs font-black inline-flex items-center gap-1.5 shadow-md ${
-                                                                        proofType.includes(
-                                                                            ProofType.BJJSignature,
-                                                                        )
-                                                                            ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
-                                                                            : "bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white"
-                                                                    }`}
-                                                                >
-                                                                    {proofType.includes(
-                                                                        ProofType.BJJSignature,
-                                                                    ) ? (
-                                                                        <Key className="w-3 h-3" />
-                                                                    ) : (
-                                                                        <Hash className="w-3 h-3" />
-                                                                    )}
-                                                                    {proofType.includes(
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {proofTypes.map(
+                                                        (proofType, idx) => (
+                                                            <span
+                                                                key={idx}
+                                                                className={`px-3 py-1.5 rounded-xl text-xs font-black inline-flex items-center gap-1.5 shadow-md ${
+                                                                    proofType.includes(
                                                                         ProofType.BJJSignature,
                                                                     )
-                                                                        ? "Signature"
-                                                                        : "MTP"}
-                                                                </span>
-                                                            ),
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-6">
-                                                    <div className="space-y-1">
-                                                        <div className="text-sm font-bold text-slate-900">
-                                                            {
-                                                                formatDate(
-                                                                    vc.issuanceDate as string,
-                                                                ).short
-                                                            }
-                                                        </div>
-                                                        <div className="text-xs text-slate-500 font-medium">
-                                                            {new Date(
-                                                                vc.issuanceDate as string,
-                                                            ).toLocaleTimeString(
-                                                                "en-US",
-                                                                {
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit",
-                                                                },
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-6">
-                                                    <div className="space-y-1">
-                                                        <div className="text-sm font-bold text-slate-900">
-                                                            {
-                                                                formatDate(
-                                                                    vc.expirationDate as string,
-                                                                ).short
-                                                            }
-                                                        </div>
-                                                        <div className="text-xs text-slate-500 font-medium">
-                                                            {new Date(
-                                                                vc.expirationDate as string,
-                                                            ).toLocaleTimeString(
-                                                                "en-US",
-                                                                {
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit",
-                                                                },
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-6">
-                                                    <span
-                                                        className={`px-4 py-2 rounded-full text-xs font-black shadow-lg inline-flex items-center gap-2 ${
-                                                            status === "active"
-                                                                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
-                                                                : status ===
-                                                                  "revoked"
-                                                                ? "bg-gradient-to-r from-red-500 to-pink-500 text-white"
-                                                                : "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
-                                                        }`}
-                                                    >
-                                                        {status ===
-                                                            "active" && (
-                                                            <Check className="w-4 h-4" />
-                                                        )}
-                                                        {status ===
-                                                            "revoked" && (
-                                                            <X className="w-4 h-4" />
-                                                        )}
-                                                        {status ===
-                                                            "pending" && (
-                                                            <AlertCircle className="w-4 h-4" />
-                                                        )}
-                                                        {status.toUpperCase()}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-6">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <motion.button
-                                                            whileHover={{
-                                                                scale: 1.1,
-                                                                rotate: 5,
-                                                            }}
-                                                            whileTap={{
-                                                                scale: 0.9,
-                                                            }}
-                                                            onClick={() => {
-                                                                setSelectedCredential(
-                                                                    vc,
-                                                                );
-                                                                setShowModal(
-                                                                    IssuerModal.VerifiableCredentialDetail,
-                                                                );
-                                                            }}
-                                                            className="p-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-xl text-white transition-all shadow-lg hover:shadow-xl"
-                                                            title="View details"
-                                                        >
-                                                            <Eye className="w-5 h-5" />
-                                                        </motion.button>
-                                                        <motion.button
-                                                            whileHover={{
-                                                                scale: 1.1,
-                                                                rotate: 5,
-                                                            }}
-                                                            whileTap={{
-                                                                scale: 0.9,
-                                                            }}
-                                                            className="p-2.5 bg-gradient-to-r from-slate-500 to-slate-600 rounded-xl text-white transition-all shadow-lg hover:shadow-xl"
-                                                            title="Download"
-                                                            onClick={() => {
-                                                                setSelectedCredential(
-                                                                    vc,
-                                                                );
-                                                                downloadVerifiableCredential();
-                                                            }}
-                                                        >
-                                                            <Download className="w-5 h-5" />
-                                                        </motion.button>
-                                                    </div>
-                                                </td>
-                                            </motion.tr>
-
-                                            {/* Expanded Details Row */}
-                                            <AnimatePresence>
-                                                {isExpanded && (
-                                                    <motion.tr
-                                                        key={`${vc.id}-expanded`}
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        exit={{ opacity: 0 }}
-                                                        className="bg-gradient-to-r from-violet-50/50 via-fuchsia-50/50 to-pink-50/50"
-                                                    >
-                                                        <td
-                                                            colSpan={7}
-                                                            className="px-6 py-6"
-                                                        >
-                                                            <motion.div
-                                                                initial={{
-                                                                    height: 0,
-                                                                }}
-                                                                animate={{
-                                                                    height: "auto",
-                                                                }}
-                                                                exit={{
-                                                                    height: 0,
-                                                                }}
-                                                                className="space-y-4"
+                                                                        ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
+                                                                        : "bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white"
+                                                                }`}
                                                             >
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-fuchsia-200">
-                                                                        <span className="font-black text-fuchsia-900 text-sm uppercase tracking-wide">
-                                                                            Issuer
-                                                                            DID
-                                                                        </span>
-                                                                        <div className="font-mono text-sm text-slate-800 mt-2 bg-gradient-to-r from-fuchsia-50 to-pink-50 p-3 rounded-xl break-all border border-fuchsia-200">
-                                                                            {
-                                                                                vc.issuer
-                                                                            }
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </motion.div>
-                                                        </td>
-                                                    </motion.tr>
-                                                )}
-                                            </AnimatePresence>
-                                        </>
+                                                                {proofType.includes(
+                                                                    ProofType.BJJSignature,
+                                                                ) ? (
+                                                                    <Key className="w-3 h-3" />
+                                                                ) : (
+                                                                    <Hash className="w-3 h-3" />
+                                                                )}
+                                                                {proofType.includes(
+                                                                    ProofType.BJJSignature,
+                                                                )
+                                                                    ? "Signature"
+                                                                    : "MTP"}
+                                                            </span>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className="space-y-1">
+                                                    <div className="text-sm font-bold text-slate-900">
+                                                        {formatDateTime(
+                                                            vc.issuanceDate as string,
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className="space-y-1">
+                                                    <div className="text-sm font-bold text-slate-900">
+                                                        {formatDateTime(
+                                                            vc.expirationDate as string,
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <span
+                                                    className={`px-4 py-2 rounded-full text-xs font-black shadow-lg inline-flex items-center gap-2 ${
+                                                        status === "active"
+                                                            ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                                                            : status ===
+                                                              "revoked"
+                                                            ? "bg-gradient-to-r from-red-500 to-pink-500 text-white"
+                                                            : "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                                                    }`}
+                                                >
+                                                    {status === "active" && (
+                                                        <Check className="w-4 h-4" />
+                                                    )}
+                                                    {status === "revoked" && (
+                                                        <X className="w-4 h-4" />
+                                                    )}
+                                                    {status === "pending" && (
+                                                        <AlertCircle className="w-4 h-4" />
+                                                    )}
+                                                    {status.toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <motion.button
+                                                        whileHover={{
+                                                            scale: 1.1,
+                                                            rotate: 5,
+                                                        }}
+                                                        whileTap={{
+                                                            scale: 0.9,
+                                                        }}
+                                                        onClick={() => {
+                                                            setSelectedCredential(
+                                                                vc,
+                                                            );
+                                                            setShowModal(
+                                                                IssuerModal.VerifiableCredentialDetail,
+                                                            );
+                                                        }}
+                                                        className="p-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-xl text-white transition-all shadow-lg hover:shadow-xl"
+                                                        title="View details"
+                                                    >
+                                                        <Eye className="w-5 h-5" />
+                                                    </motion.button>
+                                                    <motion.button
+                                                        whileHover={{
+                                                            scale: 1.1,
+                                                            rotate: 5,
+                                                        }}
+                                                        whileTap={{
+                                                            scale: 0.9,
+                                                        }}
+                                                        className="p-2.5 bg-gradient-to-r from-slate-500 to-slate-600 rounded-xl text-white transition-all shadow-lg hover:shadow-xl"
+                                                        title="Download"
+                                                        onClick={() => {
+                                                            setSelectedCredential(
+                                                                vc,
+                                                            );
+                                                            downloadVerifiableCredential();
+                                                        }}
+                                                    >
+                                                        <Download className="w-5 h-5" />
+                                                    </motion.button>
+                                                </div>
+                                            </td>
+                                        </motion.tr>
                                     );
                                 })}
                             </tbody>
@@ -692,20 +579,16 @@ export default function VerifiableCredential({
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <InfoField
                                             label="Issued Date"
-                                            value={
-                                                formatDate(
-                                                    selectedCredential.issuanceDate as string,
-                                                ).full
-                                            }
+                                            value={formatDateTime(
+                                                selectedCredential.issuanceDate as string,
+                                            )}
                                         />
                                         {selectedCredential.expirationDate && (
                                             <InfoField
                                                 label="Expiration Date"
-                                                value={
-                                                    formatDate(
-                                                        selectedCredential.expirationDate as string,
-                                                    ).full
-                                                }
+                                                value={formatDateTime(
+                                                    selectedCredential.expirationDate,
+                                                )}
                                             />
                                         )}
                                     </div>
@@ -1040,11 +923,11 @@ export default function VerifiableCredential({
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="flex gap-4 mt-8 pt-6 border-t-2 border-violet-200">
+                                <div className="flex gap-4 mt-8 pt-6 border-t-2 border-violet-200 p-6">
                                     <motion.button
                                         whileHover={{ scale: 1.02, y: -2 }}
                                         whileTap={{ scale: 0.98 }}
-                                        className="relative flex-1 group overflow-hidden"
+                                        className="relative flex-1 group overflow-hidden  rounded-2xl"
                                         onClick={() => {
                                             downloadVerifiableCredential();
                                         }}

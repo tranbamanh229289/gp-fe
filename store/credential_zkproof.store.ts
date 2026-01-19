@@ -1,6 +1,8 @@
 import { ProofRequestStatus } from "@/constants/credential_zkproof";
 import { randomIntSecure } from "@/helper/randomBit";
 import axiosInstance from "@/lib/axios";
+import { createProofService } from "@/services/proof.service";
+import { ZKProof } from "@/types/auth_zkproof";
 
 import {
     AuthorizationRequest,
@@ -19,10 +21,18 @@ export interface CredentialZKProofStore {
     createZkProofRequest: (authReq: AuthorizationRequest) => Promise<void>;
     updateZkProofRequest: (
         id: string,
-        status: ProofRequestStatus
+        status: ProofRequestStatus,
     ) => Promise<void>;
     getAllZkProofRequests: () => Promise<void>;
-    createZkProofResponse: () => Promise<void>;
+    generateCredentialAtomicQueryV3Proof: (
+        proofRequestId: string,
+        credentialId: string,
+    ) => Promise<void>;
+    proveCredentialAtomicQueryV3Proof: (
+        holderDID: string,
+        request: ProofRequest,
+        proof: ZKProof,
+    ) => Promise<void>;
     getAllZkProofResponses: () => Promise<void>;
 }
 
@@ -64,8 +74,9 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
 
                 const res = await axiosInstance.post<{ data: ProofRequest }>(
                     "/proofs/request",
-                    req
+                    req,
                 );
+                console.log(res);
                 set((state) => {
                     return {
                         ...state,
@@ -83,7 +94,7 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
 
         updateZkProofRequest: async (
             id: string,
-            status: ProofRequestStatus
+            status: ProofRequestStatus,
         ) => {
             set({ loading: true });
             try {
@@ -115,7 +126,7 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
             set({ loading: true });
             try {
                 const res = await axiosInstance.get<{ data: ProofRequest[] }>(
-                    "/proofs/request"
+                    "/proofs/request",
                 );
                 set({ proofRequests: res.data.data ?? [] });
             } catch (err) {
@@ -126,18 +137,67 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
             }
         },
 
-        createZkProofResponse: async () => {
+        generateCredentialAtomicQueryV3Proof: async (
+            proofRequestId: string,
+            credentialId: string,
+        ): Promise<void> => {
             set({ loading: true });
+
             try {
-                const res = await axiosInstance.post<{ data: ProofResponse }>(
-                    "/proofs/response"
+                const proofService = await createProofService();
+                const request = { proofRequestId, credentialId };
+                const inputs = await axiosInstance.post(
+                    "/circuits/credentialAtomicQueryV3",
+                    request,
+                );
+                console.log(inputs);
+
+                const { proof, publicSignals } =
+                    await proofService.generateCredentialAtomicQueryV3Input(
+                        inputs.data.data,
+                    );
+
+                set({ loading: false });
+            } catch (err) {
+                set({ error: "call_failed", loading: false });
+                throw err;
+            }
+        },
+
+        proveCredentialAtomicQueryV3Proof: async (
+            holderDID: string,
+            proofRequest: ProofRequest,
+            proof: ZKProof,
+        ) => {
+            set({ loading: true });
+            const scope: protocol.ZeroKnowledgeProofResponse = {
+                id: proofRequest.scopeId,
+                circuitId: proofRequest.circuitId,
+                proof: proof.proof,
+                pub_signals: proof.pub_signals,
+            };
+            const responseMessage: protocol.AuthorizationResponseMessage = {
+                id: proofRequest.threadId,
+                type: protocol.PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
+                    .AUTHORIZATION_RESPONSE_MESSAGE_TYPE,
+                from: holderDID,
+                to: proofRequest.verifierDID,
+                body: {
+                    scope: [scope],
+                    message: proofRequest.message,
+                },
+            };
+            try {
+                const resp = await axiosInstance.post<{ data: ProofResponse }>(
+                    "/proofs/verify",
+                    responseMessage,
                 );
                 set((state) => {
                     return {
                         ...state,
                         proofResponses: [
                             ...state.proofResponses,
-                            res.data.data,
+                            resp.data.data,
                         ],
                     };
                 });
@@ -154,7 +214,7 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
             set({ loading: true });
             try {
                 const res = await axiosInstance.get<{ data: ProofResponse[] }>(
-                    "/proofs/response"
+                    "/proofs/response",
                 );
                 set({ proofResponses: res.data.data });
             } catch (err) {
@@ -164,5 +224,5 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
                 set({ loading: false });
             }
         },
-    })
+    }),
 );

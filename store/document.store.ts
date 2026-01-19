@@ -35,16 +35,16 @@ interface DocumentStore {
     update: (
         type: DocumentType,
         id: string,
-        data: Partial<DocumentData>
+        data: Partial<DocumentData>,
     ) => Promise<void>;
     remove: (
         type: DocumentType,
         id: string,
-        status: DocumentStatus
+        status: DocumentStatus,
     ) => Promise<void>;
     fetchDocumentByHolderDID: (
         type: DocumentType,
-        holderDID: string
+        holderDID: string,
     ) => Promise<DocumentData>;
 
     total: () => number;
@@ -69,7 +69,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
             if (!endpoint) throw new Error("Invalid document type");
 
             const res = await axiosInstance.get<{
-                data: DocumentData[] | null;
+                data: DocumentData[] | [];
             }>(endpoint);
 
             set((state) => {
@@ -113,7 +113,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
             const res = await axiosInstance.post<{ data: DocumentData | null }>(
                 endpoint,
-                data
+                data,
             );
             set((state) => {
                 const data = state.documents[type] ?? [];
@@ -137,7 +137,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     update: async (
         type: DocumentType,
         id: string,
-        data: Partial<DocumentData>
+        data: Partial<DocumentData>,
     ) => {
         set({ loading: true });
         try {
@@ -146,7 +146,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
             const res = await axiosInstance.put<{ data: DocumentData | null }>(
                 `${endpoint}/${id}`,
-                data
+                data,
             );
             set((state) => {
                 const data = state.documents[type] ?? [];

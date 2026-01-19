@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { VerifierModal } from "@/constants/verifier";
-import {
-    CircuitId,
-    JsonDocumentObject,
-    Operators,
-    ProofType,
-    QueryOperators,
-} from "@0xpolygonid/js-sdk";
+import { CircuitId, JsonDocumentObject, ProofType } from "@0xpolygonid/js-sdk";
 import { useSchemaStore } from "@/store/schema.store";
 import { Attribute, Schema } from "@/types/schema";
 import {
@@ -32,7 +26,8 @@ import { Identity } from "@/types/auth";
 import { AuthRole } from "@/constants/auth";
 import { DynamicValueInput } from "./DynamicValueInput";
 import { useCredentialZKProofStore } from "@/store/credential_zkproof.store";
-import { OperatorOptions } from "@/constants/credential_zkproof";
+import { Operator, OperatorOptions } from "@/constants/credential_zkproof";
+import { convertValue } from "@/helper/convertValue";
 
 interface CreateRequestProp {
     setModal: (modal: VerifierModal) => void;
@@ -84,8 +79,8 @@ export default function CreateProofRequestModal({
     const [selectedQueryCondition, setSelectedQueryCondition] =
         useState<QueryCondition>({
             field: "",
-            operator: Operators.NOOP,
-            value: "",
+            operator: Operator.$noop,
+            value: 0,
         });
     const [allowedIssuers, setAllowedIssuers] = useState<string[]>(["*"]);
     const [selectedIssuer, setSelectedIssuer] = useState<string>("*");
@@ -126,79 +121,67 @@ export default function CreateProofRequestModal({
         switch (attribute?.type) {
             case "string":
                 return [
-                    QueryOperators.$eq,
-                    QueryOperators.$ne,
-                    QueryOperators.$in,
-                    QueryOperators.$nin,
-                    QueryOperators.$exists,
+                    Operator.$eq,
+                    Operator.$ne,
+                    Operator.$in,
+                    Operator.$nin,
+                    Operator.$exists,
                 ];
             case "integer":
                 return [
-                    QueryOperators.$eq,
-                    QueryOperators.$ne,
-                    QueryOperators.$in,
-                    QueryOperators.$nin,
-                    QueryOperators.$lt,
-                    QueryOperators.$gt,
-                    QueryOperators.$lte,
-                    QueryOperators.$gte,
-                    QueryOperators.$between,
-                    QueryOperators.$nonbetween,
-                    QueryOperators.$exists,
+                    Operator.$eq,
+                    Operator.$ne,
+                    Operator.$in,
+                    Operator.$nin,
+                    Operator.$lt,
+                    Operator.$gt,
+                    Operator.$lte,
+                    Operator.$gte,
+                    Operator.$between,
+                    Operator.$nonbetween,
+                    Operator.$exists,
                 ];
             case "float":
                 return [
-                    QueryOperators.$eq,
-                    QueryOperators.$ne,
-                    QueryOperators.$in,
-                    QueryOperators.$nin,
-                    QueryOperators.$lt,
-                    QueryOperators.$gt,
-                    QueryOperators.$lte,
-                    QueryOperators.$gte,
-                    QueryOperators.$between,
-                    QueryOperators.$nonbetween,
-                    QueryOperators.$exists,
+                    Operator.$eq,
+                    Operator.$ne,
+                    Operator.$in,
+                    Operator.$nin,
+                    Operator.$lt,
+                    Operator.$gt,
+                    Operator.$lte,
+                    Operator.$gte,
+                    Operator.$between,
+                    Operator.$nonbetween,
+                    Operator.$exists,
                 ];
             case "dateTime":
                 return [
-                    QueryOperators.$eq,
-                    QueryOperators.$ne,
-                    QueryOperators.$in,
-                    QueryOperators.$nin,
-                    QueryOperators.$lt,
-                    QueryOperators.$gt,
-                    QueryOperators.$lte,
-                    QueryOperators.$gte,
-                    QueryOperators.$between,
-                    QueryOperators.$nonbetween,
-                    QueryOperators.$exists,
+                    Operator.$eq,
+                    Operator.$ne,
+                    Operator.$in,
+                    Operator.$nin,
+                    Operator.$lt,
+                    Operator.$gt,
+                    Operator.$lte,
+                    Operator.$gte,
+                    Operator.$between,
+                    Operator.$nonbetween,
+                    Operator.$exists,
                 ];
             case "boolean":
-                return [Operators.EQ, Operators.NE, Operators.EXISTS];
+                return [Operator.$eq, Operator.$ne, Operator.$exists];
             default:
                 return [];
         }
     };
 
-    const buildQueryPreview = () => {
-        const credentialSubject: JsonDocumentObject = {};
-        queryConditions.forEach((cond) => {
-            credentialSubject[cond.field] = {
-                [OperatorOptions[cond.operator].value]: cond.value,
-            };
-        });
-        return {
-            ...formData.query,
-            credentialSubject: credentialSubject,
-            allowedIssuers: allowedIssuers,
-        };
-    };
     const buildQuery = () => {
         const credentialSubject: JsonDocumentObject = {};
         queryConditions.forEach((cond) => {
+            const type = getAttributeFromName(cond.field)?.type ?? "string";
             credentialSubject[cond.field] = {
-                [cond.operator]: cond.value,
+                [cond.operator]: convertValue(cond.value, type),
             };
         });
         return {
@@ -229,8 +212,8 @@ export default function CreateProofRequestModal({
             });
             setSelectedQueryCondition({
                 field: "",
-                operator: Operators.NOOP,
-                value: "",
+                operator: Operator.$noop,
+                value: 0,
             });
         }
     };
@@ -760,6 +743,16 @@ export default function CreateProofRequestModal({
                                         setAttributesOption(
                                             schema?.attributes ?? [],
                                         );
+                                        if (
+                                            formData.query.type !== schema?.type
+                                        ) {
+                                            setQueryConditions([]);
+                                            setSelectedQueryCondition({
+                                                field: "",
+                                                operator: Operator.$noop,
+                                                value: 0,
+                                            });
+                                        }
                                     }}
                                     value={formData.query.context || ""}
                                     className={`w-full px-4 py-3 rounded-xl border-2 ${
@@ -929,7 +922,7 @@ export default function CreateProofRequestModal({
                                                     {
                                                         OperatorOptions[
                                                             condition.operator
-                                                        ].label
+                                                        ]
                                                     }
                                                 </p>
                                             </div>
@@ -1000,8 +993,8 @@ export default function CreateProofRequestModal({
                                         onChange={(e) => {
                                             setSelectedQueryCondition({
                                                 field: e.target.value,
-                                                operator: Operators.NOOP,
-                                                value: "",
+                                                operator: Operator.$noop,
+                                                value: 0,
                                             });
                                         }}
                                         className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm bg-white shadow-sm"
@@ -1028,23 +1021,23 @@ export default function CreateProofRequestModal({
                                         onChange={(e) =>
                                             setSelectedQueryCondition({
                                                 ...selectedQueryCondition,
-                                                operator: Number(
-                                                    e.target.value,
-                                                ) as Operators,
-                                                value: "",
+                                                operator: e.target
+                                                    .value as Operator,
+
+                                                value: 0,
                                             })
                                         }
                                         className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-sm bg-white shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                                         disabled={!selectedQueryCondition.field}
                                     >
-                                        <option value={Operators.NOOP}>
+                                        <option value={Operator.$noop}>
                                             Select operator...
                                         </option>
                                         {getOperator(
                                             selectedQueryCondition.field,
                                         ).map((item) => (
                                             <option key={item} value={item}>
-                                                {OperatorOptions[item].label}
+                                                {OperatorOptions[item]}
                                             </option>
                                         ))}
                                     </select>
@@ -1055,7 +1048,7 @@ export default function CreateProofRequestModal({
                                     </label>
                                     {selectedQueryCondition.field &&
                                     selectedQueryCondition.operator !==
-                                        Operators.NOOP ? (
+                                        Operator.$noop ? (
                                         <DynamicValueInput
                                             fieldType={getAttributeValueInputType(
                                                 selectedQueryCondition.field,
@@ -1086,7 +1079,7 @@ export default function CreateProofRequestModal({
                                     scale:
                                         selectedQueryCondition.field &&
                                         selectedQueryCondition.operator !==
-                                            Operators.NOOP
+                                            Operator.$noop
                                             ? 1.02
                                             : 1,
                                 }}
@@ -1094,7 +1087,7 @@ export default function CreateProofRequestModal({
                                     scale:
                                         selectedQueryCondition.field &&
                                         selectedQueryCondition.operator !==
-                                            Operators.NOOP
+                                            Operator.$noop
                                             ? 0.98
                                             : 1,
                                 }}
@@ -1108,12 +1101,12 @@ export default function CreateProofRequestModal({
                                 disabled={
                                     !selectedQueryCondition.field ||
                                     selectedQueryCondition.operator ===
-                                        Operators.NOOP
+                                        Operator.$noop
                                 }
                                 className={`w-full px-4 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
                                     selectedQueryCondition.field &&
                                     selectedQueryCondition.operator !==
-                                        Operators.NOOP
+                                        Operator.$noop
                                         ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-blue-200"
                                         : "bg-gray-200 text-gray-400 cursor-not-allowed"
                                 }`}
@@ -1136,7 +1129,7 @@ export default function CreateProofRequestModal({
                                 </p>
                             </div>
                             <pre className="text-xs text-green-400 font-mono overflow-x-auto p-3 bg-black/30 rounded-lg">
-                                {JSON.stringify(buildQueryPreview(), null, 2)}
+                                {JSON.stringify(buildQuery(), null, 2)}
                             </pre>
                         </motion.div>
                     </motion.div>

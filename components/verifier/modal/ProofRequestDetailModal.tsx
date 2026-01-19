@@ -1,4 +1,5 @@
 import { proofRequestStatusConfig } from "@/constants/credential_zkproof";
+import { formatDate, isExpired } from "@/helper/dateTime";
 import { ProofRequest } from "@/types/credential_zkproof";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -20,17 +21,11 @@ import { useEffect, useState } from "react";
 
 interface ProofRequestDetailModeProp {
     selectedRequest: ProofRequest;
-    formatDate: (date: number) => string;
-    isExpired: (expiresTime: number) => boolean;
-    isExpiringSoon?: (expiresTime: number) => boolean;
     onClose: () => void;
 }
 
 export default function ProofRequestDetailModal({
     selectedRequest,
-    formatDate,
-    isExpired,
-    isExpiringSoon,
     onClose,
 }: ProofRequestDetailModeProp) {
     const [copiedField, setCopiedField] = useState<string>("");
@@ -42,9 +37,6 @@ export default function ProofRequestDetailModal({
     };
 
     const expired = isExpired(selectedRequest.expiresTime);
-    const expiringSoon = isExpiringSoon
-        ? isExpiringSoon(selectedRequest.expiresTime)
-        : false;
 
     const StatusIcon = proofRequestStatusConfig[selectedRequest.status].icon;
 
@@ -326,8 +318,6 @@ export default function ProofRequestDetailModal({
                                     className={`p-4 rounded-xl border-2 ${
                                         expired
                                             ? "bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200"
-                                            : expiringSoon
-                                            ? "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200"
                                             : "bg-gradient-to-br from-green-50 to-green-100 border-green-200"
                                     }`}
                                 >
@@ -336,8 +326,6 @@ export default function ProofRequestDetailModal({
                                             className={`w-5 h-5 ${
                                                 expired
                                                     ? "text-rose-600"
-                                                    : expiringSoon
-                                                    ? "text-amber-600"
                                                     : "text-green-600"
                                             }`}
                                         />
@@ -345,23 +333,15 @@ export default function ProofRequestDetailModal({
                                             className={`text-sm font-bold ${
                                                 expired
                                                     ? "text-rose-900"
-                                                    : expiringSoon
-                                                    ? "text-amber-900"
                                                     : "text-green-900"
                                             }`}
                                         >
-                                            {expired
-                                                ? "Expired"
-                                                : expiringSoon
-                                                ? "Expires Soon"
-                                                : "Expires"}
+                                            {expired ? "Expired" : "Expires"}
                                         </span>
                                     </div>
                                     <p
                                         className={`text-sx font-bold ${
                                             expired
-                                                ? "text-rose-700"
-                                                : expiringSoon
                                                 ? "text-amber-700"
                                                 : "text-green-700"
                                         }`}

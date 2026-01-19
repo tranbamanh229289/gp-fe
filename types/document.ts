@@ -20,18 +20,6 @@ export type DocumentData =
     | DriverLicense
     | Passport;
 
-export interface HolderCredential {
-    id: number;
-    holderId: number;
-    holderName: string;
-    holderDID: string;
-    type: DocumentType;
-    data: DocumentData;
-    verified: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
-
 export interface CitizenIdentity {
     id: string;
     idNumber: string;
@@ -39,10 +27,10 @@ export interface CitizenIdentity {
     lastName: string;
     gender: Gender;
     placeOfBirth: string;
-    dateOfBirth: string;
+    dateOfBirth: number;
     status: DocumentStatus;
-    issueDate: string;
-    expiryDate: string;
+    issueDate: number;
+    expiryDate: number;
     holderDID: string;
     issuerDID: string;
 }
@@ -57,7 +45,7 @@ export interface AcademicDegree {
     graduateYear: number;
     classification: DegreeClassification;
     status: DocumentStatus;
-    issueDate: string;
+    issueDate: number;
     holderDID: string;
     issuerDID: string;
 }
@@ -68,8 +56,8 @@ export interface HealthInsurance {
     insuranceType: string;
     hospital: string;
     status: DocumentStatus;
-    startDate: string;
-    expiryDate: string;
+    startDate: number;
+    expiryDate: number;
     holderDID: string;
     issuerDID: string;
 }
@@ -80,8 +68,8 @@ export interface DriverLicense {
     class: string;
     point: number;
     status: DocumentStatus;
-    issueDate: string;
-    expiryDate: string;
+    issueDate: number;
+    expiryDate: number;
     holderDID: string;
     issuerDID: string;
 }
@@ -93,25 +81,8 @@ export interface Passport {
     nationality: string;
     mrz: string;
     status: DocumentStatus;
-    issueDate: string;
-    expiryDate: string;
+    issueDate: number;
+    expiryDate: number;
     holderDID: string;
     issuerDID: string;
-}
-
-export interface Province {
-    name: string;
-    code: number;
-    division_type: string;
-    codename: string;
-    phone_code: number;
-    wards: any[];
-}
-
-export interface Ward {
-    name: string;
-    code: number;
-    division_type: string;
-    codename: string;
-    province_code: number;
 }

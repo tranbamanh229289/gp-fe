@@ -23,6 +23,7 @@ import {
 import { useEffect, useState } from "react";
 import { ReviewCredentialRequestModal } from "./modal/IssueVerifiableCredentialModal";
 import { RejectCredentialRequestModal } from "./modal/RejectCredentialRequestModal";
+import { formatDate, isExpired } from "@/helper/dateTime";
 
 interface CredentialsRequestsProp {
     showModal: IssuerModal;
@@ -57,25 +58,6 @@ export default function CredentialRequests({
             filterStatus === "all" || req.status === filterStatus;
         return matchesSearch && matchesFilter;
     });
-
-    const formatDate = (date: number) => {
-        return new Date(date * 1000).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
-    const formatDuration = (duration: number) => {
-        return new Date(duration * 1000).getDate();
-    };
-
-    const isExpired = (expiresTime: number) => {
-        const nowInSeconds = () => Math.floor(Date.now() / 1000);
-        return expiresTime < nowInSeconds();
-    };
 
     const handleReject = async () => {
         try {
@@ -384,10 +366,9 @@ export default function CredentialRequests({
                                                     </span>
                                                 </div>
                                                 <p className="text-sm font-semibold text-slate-900">
-                                                    {formatDuration(
+                                                    {formatDate(
                                                         request.expiration,
                                                     )}{" "}
-                                                    days
                                                 </p>
                                             </div>
                                         </div>

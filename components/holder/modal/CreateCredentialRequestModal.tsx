@@ -9,6 +9,12 @@ import { useEffect, useState } from "react";
 import { Schema } from "@/types/schema";
 import { useCredentialRequestStore } from "@/store/credential_request.store";
 import { ProofType } from "@0xpolygonid/js-sdk";
+import {
+    dateInputToTimestamp,
+    formatDate,
+    isExpired,
+    timestampToDateInput,
+} from "@/helper/dateTime";
 
 export default function CreateCredentialRequestModal({
     onClose,
@@ -23,7 +29,7 @@ export default function CreateCredentialRequestModal({
     const isLoadingSchemas = useSchemaStore((state) => state.loading);
 
     const createCredentialRequest = useCredentialRequestStore(
-        (state) => state.createCredentialRequest
+        (state) => state.createCredentialRequest,
     );
 
     const [formData, setFormData] = useState<CredentialIssuanceRequest>({
@@ -34,7 +40,7 @@ export default function CreateCredentialRequestModal({
         schemaType: "",
         createdTime: 0,
         expiresTime: 0,
-        expiration: 1,
+        expiration: Date.now() / 1000,
     });
 
     const [issuers, setIssuers] = useState<Identity[]>([]);
@@ -51,7 +57,7 @@ export default function CreateCredentialRequestModal({
                 schemaHash: formData.schemaHash,
                 schemaURL: formData.schemaURL,
                 schemaType: formData.schemaType,
-                expiration: formData.expiration * 24 * 3600,
+                expiration: formData.expiration,
                 createdTime: Math.floor(Date.now() / 1000),
                 expiresTime: Math.floor(Date.now() / 1000) + 24 * 3600,
             };
@@ -88,6 +94,7 @@ export default function CreateCredentialRequestModal({
             formData.schemaURL &&
             formData.schemaType &&
             formData.expiration &&
+            !isExpired(formData.expiration) &&
             formData.expiration > 0
         );
     };
@@ -99,7 +106,7 @@ export default function CreateCredentialRequestModal({
                 // Fetch schemas
                 const schemas: Schema[] = await fetchSchemas();
                 const issuers: Identity[] = await fetchIdentities(
-                    AuthRole.Issuer
+                    AuthRole.Issuer,
                 );
 
                 setIssuers(issuers || []);
@@ -240,7 +247,7 @@ export default function CreateCredentialRequestModal({
                                         onChange={(e) =>
                                             updateField(
                                                 "issuerDID",
-                                                e.target.value
+                                                e.target.value,
                                             )
                                         }
                                         className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-slate-700 bg-white"
@@ -298,7 +305,7 @@ export default function CreateCredentialRequestModal({
                                             onChange={(e) =>
                                                 updateField(
                                                     "schemaURL",
-                                                    e.target.value
+                                                    e.target.value,
                                                 )
                                             }
                                             className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-slate-700 bg-white"
@@ -359,30 +366,29 @@ export default function CreateCredentialRequestModal({
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
                                 <h3 className="text-lg font-semibold text-slate-800">
-                                    Validity Period
+                                    Expiration
                                 </h3>
                             </div>
                             <div className="relative">
                                 <input
-                                    type="number"
-                                    value={formData.expiration}
-                                    onChange={(e) =>
-                                        updateField(
-                                            "expiration",
-                                            parseInt(e.target.value)
-                                        )
-                                    }
+                                    type="date"
+                                    value={timestampToDateInput(
+                                        formData.expiration,
+                                    )}
+                                    onChange={(e) => {
+                                        const timestamp = dateInputToTimestamp(
+                                            e.target.value,
+                                        );
+                                        updateField("expiration", timestamp);
+                                    }}
                                     min="1"
                                     className="w-full px-4 py-3 pr-16 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-slate-900"
                                 />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">
-                                    days
-                                </div>
                             </div>
                             <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                                 <span className="inline-block w-1 h-1 rounded-full bg-slate-400" />
-                                Credential will be valid for{" "}
-                                {formData.expiration || 365} days from issuance
+                                Credential will be valid until:{" "}
+                                {formatDate(formData.expiration)}
                             </p>
                         </motion.div>
                     </div>

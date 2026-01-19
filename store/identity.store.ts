@@ -17,7 +17,7 @@ interface IdentityStore {
     register: (
         privateKey: string,
         name: string,
-        role: AuthRole
+        role: AuthRole,
     ) => Promise<void>;
     login: (proof: ZKProof) => Promise<AuthRole>;
     logout: () => Promise<void>;
@@ -39,7 +39,7 @@ export const useIdentityStore = create<IdentityStore>()(
             register: async (
                 privateKey: string,
                 name: string,
-                role: AuthRole
+                role: AuthRole,
             ) => {
                 set({ loading: true, error: "" });
                 const publicKey = getPublicKey(privateKey);
@@ -71,7 +71,7 @@ export const useIdentityStore = create<IdentityStore>()(
             login: async (proof: ZKProof): Promise<AuthRole> => {
                 const res: LoginResponse = await useAuthZkProofStore
                     .getState()
-                    .verify(proof);
+                    .proveAuthV3Proof(proof);
                 set({
                     identity: res.claims,
                     publicKey: res.publicKey,
@@ -150,6 +150,6 @@ export const useIdentityStore = create<IdentityStore>()(
                 publicKey: state.publicKey,
                 token: state.token,
             }),
-        }
-    )
+        },
+    ),
 );

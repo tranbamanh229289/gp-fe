@@ -18,6 +18,7 @@ interface VerifiableCredentialStore {
         privateKey: string,
     ) => Promise<void>;
     getAllVerifiableCredentials: () => Promise<void>;
+    fetchVerifiableCredentials: () => Promise<W3CCredential[]>;
 }
 
 export const useVerifiableCredential = create<VerifiableCredentialStore>(
@@ -62,13 +63,15 @@ export const useVerifiableCredential = create<VerifiableCredentialStore>(
                 }>(`/credentials/verifiable/${credentialRequest.id}`, request);
 
                 set((state) => {
-                    return {
-                        ...state,
-                        verifiableCredentials: [
-                            ...state.verifiableCredentials,
-                            res.data.data,
-                        ],
-                    };
+                    return res.data.data
+                        ? {
+                              ...state,
+                              verifiableCredentials: [
+                                  ...state.verifiableCredentials,
+                                  res.data.data,
+                              ],
+                          }
+                        : state;
                 });
                 await new Promise((resolve) => setTimeout(resolve, 2000));
             } catch (err) {
@@ -92,6 +95,20 @@ export const useVerifiableCredential = create<VerifiableCredentialStore>(
                 throw err;
             } finally {
                 set({ loading: false });
+            }
+        },
+        fetchVerifiableCredentials: async () => {
+            set({ loading: true });
+            try {
+                const res = await axiosInstance.get<{
+                    data: W3CCredential[];
+                }>("/credentials/verifiable");
+                set({ error: "get_failed" });
+                return res.data.data;
+            } catch (err) {
+                set({ error: "get_failed" });
+                set({ loading: false });
+                throw err;
             }
         },
     }),

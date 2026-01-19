@@ -10,6 +10,7 @@ import {
 import { useDocumentStore } from "@/store/document.store";
 import { IssuerItemSelected } from "@/types/issuer";
 import DeleteModal from "./modal/DeleteModal";
+import { formatDate } from "@/helper/dateTime";
 
 interface DocumentProp {
     showModal: IssuerModal;
@@ -240,14 +241,9 @@ export default function Documents({
                                                     </span>
                                                     <span className="text-sm font-semibold text-gray-900 text-right max-w-[60%] truncate">
                                                         {typeof value ===
-                                                            "string" &&
-                                                        value.includes("Z")
-                                                            ? new Date(
-                                                                  value,
-                                                              ).toLocaleDateString(
-                                                                  "en-GB",
-                                                              )
-                                                            : value}
+                                                        "string"
+                                                            ? value
+                                                            : formatDate(value)}
                                                     </span>
                                                 </div>
                                             ))}

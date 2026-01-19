@@ -15,6 +15,7 @@ import { proofRequestStatusConfig } from "@/constants/credential_zkproof";
 import { ProofRequest } from "@/types/credential_zkproof";
 import GenerateProofModal from "./modal/GenerateProofModal";
 import ProofRequestDetailModal from "./modal/ProofRequestDetailModal";
+import { formatDate, isExpired } from "@/helper/dateTime";
 
 interface MyProofRequestsProp {
     showModal: HolderModal;
@@ -26,28 +27,16 @@ export default function MyProofRequests({
     setShowModal,
 }: MyProofRequestsProp) {
     const proofRequests = useCredentialZKProofStore(
-        (state) => state.proofRequests
+        (state) => state.proofRequests,
     );
 
     const [selectedRequest, setSelectedRequest] = useState<ProofRequest | null>(
-        null
+        null,
     );
 
     const getAllZkProofRequests = useCredentialZKProofStore(
-        (state) => state.getAllZkProofRequests
+        (state) => state.getAllZkProofRequests,
     );
-    const formatDate = (timestamp: number) => {
-        return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
-    };
-
-    const isExpired = (expiresTime: number) => {
-        const nowInSeconds = () => Math.floor(Date.now() / 1000);
-        return expiresTime < nowInSeconds();
-    };
 
     useEffect(() => {
         getAllZkProofRequests();
@@ -154,7 +143,7 @@ export default function MyProofRequests({
                                                 <Calendar className="w-3.5 h-3.5" />
                                                 <span>
                                                     {formatDate(
-                                                        request.createdTime
+                                                        request.createdTime,
                                                     )}
                                                 </span>
                                             </div>
@@ -168,7 +157,7 @@ export default function MyProofRequests({
                                                 <Timer className="w-3.5 h-3.5" />
                                                 <span>
                                                     {formatDate(
-                                                        request.expiresTime
+                                                        request.expiresTime,
                                                     )}
                                                 </span>
                                             </div>
@@ -180,7 +169,7 @@ export default function MyProofRequests({
                                                 onClick={() => {
                                                     setSelectedRequest(request);
                                                     setShowModal(
-                                                        HolderModal.ProofRequestDetail
+                                                        HolderModal.ProofRequestDetail,
                                                     );
                                                 }}
                                                 className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium transition-all text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md group"
@@ -195,7 +184,7 @@ export default function MyProofRequests({
                                                 onClick={() => {
                                                     setSelectedRequest(request);
                                                     setShowModal(
-                                                        HolderModal.GenerateProof
+                                                        HolderModal.GenerateProof,
                                                     );
                                                 }}
                                                 className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-medium transition-all text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md group"
@@ -232,8 +221,6 @@ export default function MyProofRequests({
             {showModal == HolderModal.ProofRequestDetail && (
                 <ProofRequestDetailModal
                     selectedRequest={selectedRequest as ProofRequest}
-                    formatDate={formatDate}
-                    isExpired={isExpired}
                     onClose={() => {
                         setShowModal(HolderModal.Null);
                         setSelectedRequest(null);
@@ -246,7 +233,7 @@ export default function MyProofRequests({
                         setShowModal(HolderModal.Null);
                         setSelectedRequest(null);
                     }}
-                    onConfirm={() => {}}
+                    proofRequest={selectedRequest as ProofRequest}
                 />
             )}
         </motion.div>

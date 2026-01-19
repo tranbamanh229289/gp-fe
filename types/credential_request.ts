@@ -27,9 +27,9 @@ export interface CredentialIssuanceRequest {
     schemaHash: string;
     schemaURL: string;
     schemaType: string;
-    expiration: number;
     holderDID: string;
     issuerDID: string;
+    expiration: number;
     createdTime: number;
     expiresTime: number;
 }

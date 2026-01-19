@@ -1,8 +1,7 @@
-import { ProofRequestStatus } from "@/constants/credential_zkproof";
+import { Operator, ProofRequestStatus } from "@/constants/credential_zkproof";
 import {
     CircuitId,
     JsonDocumentObject,
-    Operators,
     ProofType,
     ZeroKnowledgeProofQuery,
 } from "@0xpolygonid/js-sdk";
@@ -51,9 +50,8 @@ export interface AuthorizationRequest {
     createdTime: number;
 }
 
-export type QueryValueType = string | number | boolean | string[] | number[];
 export interface QueryCondition {
     field: string;
-    operator: Operators;
-    value: QueryValueType;
+    operator: Operator;
+    value: number;
 }

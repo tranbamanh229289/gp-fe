@@ -1,5 +1,6 @@
 import axiosInstance from "@/lib/axios";
 import { createMTService } from "@/services/mt.service";
+import { createProofService } from "@/services/proof.service";
 import { Challenge, Identity, LoginResponse } from "@/types/auth";
 import { ZKProof } from "@/types/auth_zkproof";
 import { protocol } from "@iden3/js-iden3-auth";
@@ -18,9 +19,9 @@ interface AuthZkProofStore {
     loading: boolean;
     error: string;
 
-    verify: (proof: ZKProof) => Promise<LoginResponse>;
+    proveAuthV3Proof: (proof: ZKProof) => Promise<LoginResponse>;
     requestChallenge: () => Promise<void>;
-    generateProof: (privateKey: string) => Promise<{
+    generateAuthV3Proof: (privateKey: string) => Promise<{
         proof: snarkjs.Groth16Proof;
         publicSignals: snarkjs.PublicSignals;
     }>;
@@ -40,7 +41,7 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
     loading: false,
     error: "",
 
-    verify: async (proof: ZKProof): Promise<LoginResponse> => {
+    proveAuthV3Proof: async (proof: ZKProof): Promise<LoginResponse> => {
         set({ loading: true });
         const verifierDID = get().verifierDID;
         const senderDID = get().senderDID;
@@ -57,7 +58,7 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
                 pub_signals: proof.pub_signals,
             };
 
-            const req: protocol.AuthorizationResponseMessage = {
+            const resp: protocol.AuthorizationResponseMessage = {
                 id: requestID,
                 type: protocol.PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
                     .AUTHORIZATION_RESPONSE_MESSAGE_TYPE,
@@ -71,7 +72,7 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
 
             const res = await axiosInstance.post<{
                 data: LoginResponse;
-            }>(callbackURL, req);
+            }>(callbackURL, resp);
             set({ isVerified: true });
             return res.data.data;
         } catch (err: any) {
@@ -82,14 +83,15 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
         }
     },
 
-    generateProof: async (
-        privateKey: string
+    generateAuthV3Proof: async (
+        privateKey: string,
     ): Promise<{
         proof: snarkjs.Groth16Proof;
         publicSignals: snarkjs.PublicSignals;
     }> => {
         set({ loading: true });
         try {
+            const proofService = await createProofService();
             const mtService = await createMTService(privateKey);
             const { did } = await mtService.getIdentityInfo();
             set({ senderDID: did.string() });
@@ -99,11 +101,12 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
             }
             const challengeBigInt = BigInt(challenge);
             const inputs = await mtService.getAuthV3CircuitInput(
-                challengeBigInt
+                challengeBigInt,
             );
-            const { proof, publicSignals } = await mtService.generateZKProof(
-                inputs
-            );
+
+            const { proof, publicSignals } =
+                await proofService.generateAuthV3ZKProof(inputs);
+            set({ loading: false });
             return { proof, publicSignals };
         } catch (err: any) {
             console.error("Generate proof failed:", err);
@@ -112,10 +115,9 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
                 : err.message?.includes("Merkle")
                 ? "Merkle tree not have claim"
                 : err.message || "Generate proof undefined";
-            set({ error: errorMsg });
+
+            set({ error: errorMsg, loading: false });
             throw err;
-        } finally {
-            set({ loading: false });
         }
     },
 
