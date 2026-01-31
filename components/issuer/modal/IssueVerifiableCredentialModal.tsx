@@ -61,7 +61,6 @@ export function ReviewCredentialRequestModal({
             return acc;
         }, {} as Record<string, any>);
     };
-
     const handleConfirm = async () => {
         if (isValid()) {
             setFormError("");
@@ -106,7 +105,6 @@ export function ReviewCredentialRequestModal({
                 const schemaAttributes = await fetchSchemaAttributes(
                     request.schemaId,
                 );
-
                 setCredentialData(credentialData);
                 setSchemaAttributes(schemaAttributes);
             } catch (err) {
@@ -226,7 +224,7 @@ export function ReviewCredentialRequestModal({
                                                     e.stopPropagation()
                                                 }
                                             >
-                                                View Details
+                                                View
                                                 <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                                             </a>
                                         </div>

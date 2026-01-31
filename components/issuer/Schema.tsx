@@ -1,8 +1,8 @@
-import { Search, Trash2, FileJson, Plus, Filter } from "lucide-react";
+import { Search, Trash2, FileJson, Plus, Filter, Eye } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { Schema } from "@/types/schema";
-import { SchemaStatus } from "@/constants/schema";
+import { SchemaStatus, schemaStatusConfig } from "@/constants/schema";
 import { credentialTypeConfig, IssuerModal } from "@/constants/issuer";
 import DeleteModal from "./modal/DeleteModal";
 import { useSchemaStore } from "@/store/schema.store";
@@ -46,17 +46,6 @@ export default function Schemas({ showModal, setShowModal }: SchemaProp) {
             }),
         [schemas, filterStatus, searchQuery],
     );
-
-    const getStatusColor = (status: SchemaStatus) => {
-        switch (status) {
-            case SchemaStatus.Active:
-                return "bg-green-100 text-green-700";
-            case SchemaStatus.Revoked:
-                return "bg-yellow-100 text-yellow-700";
-            default:
-                return "bg-gray-100 text-gray-700";
-        }
-    };
 
     useEffect(() => {
         getAllSchemas();
@@ -119,10 +108,10 @@ export default function Schemas({ showModal, setShowModal }: SchemaProp) {
                                 className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none bg-white font-medium"
                             >
                                 <option value="All">All Status</option>
+
                                 <option value={SchemaStatus.Active}>
                                     Active
                                 </option>
-
                                 <option value={SchemaStatus.Revoked}>
                                     Revoked
                                 </option>
@@ -161,9 +150,10 @@ export default function Schemas({ showModal, setShowModal }: SchemaProp) {
                                         </div>
                                     </div>
                                     <span
-                                        className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
-                                            schema.status,
-                                        )}`}
+                                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                            schemaStatusConfig[schema.status]
+                                                .color
+                                        }`}
                                     >
                                         {schema.status}
                                     </span>
@@ -317,9 +307,11 @@ export default function Schemas({ showModal, setShowModal }: SchemaProp) {
                                                 IssuerModal.DetailSchema,
                                             );
                                         }}
-                                        className="flex-1 px-4 py-2 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold transition-colors"
+                                        className="flex-1 px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold transition-colors flex items-center justify-center gap-2"
                                     >
-                                        View Details
+                                        {" "}
+                                        <Eye className="w-4 h-4" />
+                                        View
                                     </button>
                                     <button
                                         onClick={() => {

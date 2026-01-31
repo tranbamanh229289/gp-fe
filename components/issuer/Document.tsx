@@ -1,7 +1,11 @@
 import { Edit, FileText, Filter, Plus, Search, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { DocumentStatus, DocumentType } from "@/constants/document";
+import {
+    DocumentStatus,
+    documentStatusConfig,
+    DocumentType,
+} from "@/constants/document";
 import {
     credentialTypeConfig,
     IssuerItemSelectedType,
@@ -159,9 +163,7 @@ export default function Documents({
                                 <option value={DocumentStatus.Active}>
                                     Active
                                 </option>
-                                <option value={DocumentStatus.Expired}>
-                                    Expired
-                                </option>
+
                                 <option value={DocumentStatus.Revoked}>
                                     Revoked
                                 </option>
@@ -175,6 +177,7 @@ export default function Documents({
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredDocs.map((doc) => {
                             const config = credentialTypeConfig[activeTab];
+
                             return (
                                 <motion.div
                                     key={doc.id}
@@ -201,13 +204,8 @@ export default function Documents({
                                         </div>
                                         <span
                                             className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
-                                                doc.status ===
-                                                DocumentStatus.Active
-                                                    ? "bg-emerald-100 text-emerald-700"
-                                                    : doc.status ===
-                                                      DocumentStatus.Revoked
-                                                    ? "bg-red-100 text-red-700"
-                                                    : "bg-gray-100 text-gray-700"
+                                                documentStatusConfig[doc.status]
+                                                    .color
                                             }`}
                                         >
                                             {doc.status}

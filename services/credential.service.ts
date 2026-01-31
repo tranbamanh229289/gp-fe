@@ -35,7 +35,7 @@ export class CredentialService {
             type: this.credentialRequest.schemaType,
             credentialSubject: credentialSubject,
             context: [this.credentialRequest.contextURL],
-            expiration: this.credentialRequest.expiration,
+            expiration: this.credentialRequest.expiration * 1000,
             issuanceDate: Date.now() / 1000,
             revocationOpts: {
                 id: path.join(
@@ -74,7 +74,6 @@ export class CredentialService {
             };
         }
         const coreClaim = await vc.toCoreClaim(options);
-        console.log(coreClaim);
 
         return coreClaim;
     }

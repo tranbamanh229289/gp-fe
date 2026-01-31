@@ -13,12 +13,14 @@ import {
     Check,
     LogOut,
     ChevronDown,
+    FileCheck,
 } from "lucide-react";
 import { HolderActiveTab, HolderModal } from "@/constants/holder";
 import { useIdentityStore } from "@/store/identity.store";
 import MyVerifiableCredential from "@/components/holder/MyVerifiableCredential";
 import MyCredentialRequest from "@/components/holder/MyCredentialRequest";
 import MyProofRequests from "@/components/holder/MyProofRequests";
+import MyProofSubmissions from "@/components/holder/MyProofSubmissions";
 import CreateCredentialRequestModal from "@/components/holder/modal/CreateCredentialRequestModal";
 import { useRouter } from "next/navigation";
 
@@ -26,6 +28,7 @@ const dashboard = {
     verifiableCredentials: 0,
     credentialRequests: 0,
     proofsGenerated: 0,
+    proofSubmissions: 0,
 };
 
 export default function HolderDashboard() {
@@ -251,14 +254,14 @@ export default function HolderDashboard() {
                         </div>
                     </div>
 
-                    {/* Stats Card - Simplified without DID/State */}
+                    {/* Stats Card */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg"
                     >
                         {/* Stats */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <motion.div
                                 whileHover={{ scale: 1.05 }}
                                 className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center border border-blue-200"
@@ -267,7 +270,7 @@ export default function HolderDashboard() {
                                     {dashboard.verifiableCredentials}
                                 </div>
                                 <div className="text-xs text-blue-600">
-                                    Credentials
+                                    Verifiable Credentials
                                 </div>
                             </motion.div>
                             <motion.div
@@ -278,7 +281,7 @@ export default function HolderDashboard() {
                                     {dashboard.credentialRequests}
                                 </div>
                                 <div className="text-xs text-purple-600">
-                                    Pending
+                                    Credential Requests
                                 </div>
                             </motion.div>
                             <motion.div
@@ -289,7 +292,18 @@ export default function HolderDashboard() {
                                     {dashboard.proofsGenerated}
                                 </div>
                                 <div className="text-xs text-green-600">
-                                    Proofs
+                                    Proof Requests
+                                </div>
+                            </motion.div>
+                            <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 text-center border border-orange-200"
+                            >
+                                <div className="text-2xl font-bold text-orange-700">
+                                    {dashboard.proofSubmissions}
+                                </div>
+                                <div className="text-xs text-orange-600">
+                                    Proof Submissions
                                 </div>
                             </motion.div>
                         </div>
@@ -298,11 +312,11 @@ export default function HolderDashboard() {
 
                 {/* Tabs */}
                 <div className="flex items-center justify-between mb-6">
-                    <div className="flex gap-2 p-1.5 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex gap-2 p-1.5 bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
                         {[
                             {
                                 id: HolderActiveTab.VerifiableCredentials,
-                                label: "My Verifiable Credentials",
+                                label: "My W3C Credentials",
                                 icon: Award,
                             },
                             {
@@ -315,6 +329,11 @@ export default function HolderDashboard() {
                                 label: "Proof Requests",
                                 icon: Shield,
                             },
+                            {
+                                id: HolderActiveTab.ProofSubmissions,
+                                label: "My Proof Submissions",
+                                icon: FileCheck,
+                            },
                         ].map((tab) => (
                             <motion.button
                                 key={tab.id}
@@ -323,14 +342,16 @@ export default function HolderDashboard() {
                                 }
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className={`px-6 py-2.5 rounded-lg transition-all font-medium text-sm flex items-center gap-2 ${
+                                className={`px-4 md:px-6 py-2.5 rounded-lg transition-all font-medium text-sm flex items-center gap-2 whitespace-nowrap ${
                                     activeTab === tab.id
                                         ? "bg-blue-600 text-white shadow-md"
                                         : "text-gray-600 hover:bg-gray-50"
                                 }`}
                             >
                                 <tab.icon className="w-4 h-4" />
-                                {tab.label}
+                                <span className="hidden sm:inline">
+                                    {tab.label}
+                                </span>
                             </motion.button>
                         ))}
                     </div>
@@ -341,10 +362,12 @@ export default function HolderDashboard() {
                         onClick={() =>
                             setShowModal(HolderModal.CreateCredentialRequest)
                         }
-                        className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/30"
+                        className="px-4 md:px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/30"
                     >
                         <Plus className="w-5 h-5" />
-                        Request Credential
+                        <span className="hidden sm:inline">
+                            Request Credential
+                        </span>
                     </motion.button>
                 </div>
 
@@ -366,6 +389,14 @@ export default function HolderDashboard() {
                     {/* Proof Requests Tab */}
                     {activeTab === HolderActiveTab.ProofRequests && (
                         <MyProofRequests
+                            showModal={showModal}
+                            setShowModal={setShowModal}
+                        />
+                    )}
+
+                    {/* Proof Submissions Tab */}
+                    {activeTab === HolderActiveTab.ProofSubmissions && (
+                        <MyProofSubmissions
                             showModal={showModal}
                             setShowModal={setShowModal}
                         />

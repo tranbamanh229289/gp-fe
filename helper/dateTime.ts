@@ -24,6 +24,11 @@ export const isExpired = (date: number) => {
     return date < nowInSeconds;
 };
 
+export const isExpiredDateTime = (dateTime: string) => {
+    const dateInSeconds = Math.floor(new Date(dateTime).getTime() / 1000);
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    return dateInSeconds < nowInSeconds;
+};
 // input second (input fe)
 export const timestampToDateInput = (
     timestamp: number | null | undefined,

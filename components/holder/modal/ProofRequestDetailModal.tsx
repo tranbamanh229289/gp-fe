@@ -1,6 +1,9 @@
-import { proofRequestStatusConfig } from "@/constants/credential_zkproof";
+import {
+    proofRequestStatusConfig,
+    proofTypeConfig,
+} from "@/constants/credential_zkproof";
 import { formatDate, isExpired } from "@/helper/dateTime";
-import { ProofRequest } from "@/types/credential_zkproof";
+import { ProofRequest } from "@/types/credential_proof";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Calendar,
@@ -171,7 +174,33 @@ export default function ProofRequestDetailModal({
                                 </div>
                             </div>
 
-                            {/* Schema & Circuit Grid */}
+                            {/* Allowed Issuers */}
+                            <div className="p-5 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+                                        <CheckCircle2 className="w-5 h-5 text-white" />
+                                    </div>
+                                    <h3 className="text-base font-bold text-emerald-900">
+                                        Allowed Issuers
+                                    </h3>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedRequest.allowedIssuers.map(
+                                        (issuer, i) => (
+                                            <div
+                                                key={i}
+                                                className="px-3 py-2 bg-white rounded-lg border border-emerald-200"
+                                            >
+                                                <code className="text-xs font-mono text-emerald-700 font-semibold">
+                                                    {issuer === "*"
+                                                        ? "🌐 All Issuers"
+                                                        : issuer}
+                                                </code>
+                                            </div>
+                                        ),
+                                    )}
+                                </div>
+                            </div>
 
                             {/* Schema */}
                             <div className="p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
@@ -196,9 +225,16 @@ export default function ProofRequestDetailModal({
                                         <span className="text-xs text-indigo-600 font-semibold uppercase tracking-wide">
                                             Context URL
                                         </span>
-                                        <code className="text-xs font-mono text-gray-900 break-all block mt-0.5">
-                                            {selectedRequest.context}
-                                        </code>
+                                        <p>
+                                            <a
+                                                href={selectedRequest.context}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="font-mono text-xs text-indigo-600 hover:text-indigo-800 break-all hover:underline"
+                                            >
+                                                {selectedRequest.context}
+                                            </a>
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -226,38 +262,17 @@ export default function ProofRequestDetailModal({
                                         <span className="text-xs text-indigo-600 font-semibold uppercase tracking-wide">
                                             Proof Type
                                         </span>
-                                        <code className="text-xs font-mono text-indigo-700 bg-indigo-100 px-2 py-1 rounded inline-block mt-1">
-                                            {selectedRequest.proofType}
-                                        </code>
+                                        <p>
+                                            <code className="text-xs font-mono text-indigo-700 bg-indigo-100 px-2 py-1 rounded inline-block mt-1">
+                                                {
+                                                    proofTypeConfig[
+                                                        selectedRequest
+                                                            .proofType
+                                                    ].label
+                                                }
+                                            </code>
+                                        </p>
                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Allowed Issuers */}
-                            <div className="p-5 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-                                        <CheckCircle2 className="w-5 h-5 text-white" />
-                                    </div>
-                                    <h3 className="text-base font-bold text-emerald-900">
-                                        Allowed Issuers
-                                    </h3>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedRequest.allowedIssuers.map(
-                                        (issuer, i) => (
-                                            <div
-                                                key={i}
-                                                className="px-3 py-2 bg-white rounded-lg border border-emerald-200"
-                                            >
-                                                <code className="text-xs font-mono text-emerald-700 font-semibold">
-                                                    {issuer === "*"
-                                                        ? "🌐 All Issuers"
-                                                        : issuer}
-                                                </code>
-                                            </div>
-                                        ),
-                                    )}
                                 </div>
                             </div>
 

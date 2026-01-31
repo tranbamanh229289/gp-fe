@@ -3,7 +3,7 @@ import { AuthMode, LoginStep } from "@/constants/auth";
 import { generateQRCodeSVG } from "@/helper/qrcode";
 import { useIdentityStore } from "@/store/identity.store";
 import { useAuthZkProofStore } from "@/store/auth_zkproof.store";
-import { ProofData, ZKProof } from "@/types/auth_zkproof";
+import { ProofData, ZKProof } from "@/types/zkproof";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     AlertCircle,
@@ -37,15 +37,16 @@ export default function Login({ setMode }: LoginProps) {
     const [zkLoginStep, setZkLoginStep] = useState<LoginStep>(
         LoginStep.Challenge,
     );
-    const [zkProof, setZkProof] = useState<ProofData>({
-        pi_a: [],
-        pi_b: [],
-        pi_c: [],
-        protocol: "",
-        curve: "",
+    const [zkProof, setZkProof] = useState<ZKProof>({
+        proof: {
+            pi_a: [],
+            pi_b: [],
+            pi_c: [],
+            protocol: "",
+            curve: "",
+        },
+        pub_signals: [],
     });
-    const [publicSignals, setPublicSignals] = useState<string[]>([]);
-
     const [isChallengeLoading, setIsChallengeLoading] = useState(false);
     const [isProofLoading, setIsProofLoading] = useState(false);
     const [isSendingProof, setIsSendingProof] = useState(false);
@@ -94,11 +95,8 @@ export default function Login({ setMode }: LoginProps) {
         setError("");
 
         try {
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            const result = await generateAuthV3Proof(privateKeyInput);
-
-            setZkProof(result.proof);
-            setPublicSignals(result.publicSignals);
+            const zkProof = await generateAuthV3Proof(privateKeyInput);
+            setZkProof(zkProof);
             setZkLoginStep(LoginStep.Verify);
         } catch (err) {
             setError(
@@ -110,17 +108,12 @@ export default function Login({ setMode }: LoginProps) {
     };
 
     // Step 3: Send proof to backend
-    const handleVerify = async () => {
+    const handleProve = async () => {
         setIsSendingProof(true);
         setError("");
 
         try {
-            const proof: ZKProof = {
-                proof: zkProof,
-                pub_signals: publicSignals,
-            };
-            const roleAuth = await login(proof);
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            const roleAuth = await login(zkProof);
             setZkLoginStep(LoginStep.Login);
             setTimeout(() => {
                 router.replace(`/${roleAuth}`);
@@ -727,7 +720,7 @@ export default function Login({ setMode }: LoginProps) {
                                         transition={{ delay: 0.8 }}
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={handleVerify}
+                                        onClick={handleProve}
                                         className="w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white text-lg font-bold shadow-2xl shadow-emerald-500/50 transition-all flex items-center justify-center gap-3"
                                     >
                                         <Send className="w-6 h-6" />
@@ -773,11 +766,6 @@ export default function Login({ setMode }: LoginProps) {
                                                 icon: Key,
                                                 label: "Proof Generated",
                                                 done: true,
-                                            },
-                                            {
-                                                icon: Send,
-                                                label: "Sending to Backend",
-                                                done: false,
                                             },
                                             {
                                                 icon: CheckCircle2,

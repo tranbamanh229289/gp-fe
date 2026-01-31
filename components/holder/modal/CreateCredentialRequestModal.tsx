@@ -4,7 +4,16 @@ import { useSchemaStore } from "@/store/schema.store";
 import { CredentialIssuanceRequest } from "@/types/credential_request";
 import { Identity } from "@/types/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, FileText, Loader2, User, AlertCircle } from "lucide-react";
+import {
+    Send,
+    X,
+    FileText,
+    Loader2,
+    User,
+    AlertCircle,
+    Building2,
+    Clock,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Schema } from "@/types/schema";
 import { useCredentialRequestStore } from "@/store/credential_request.store";
@@ -226,6 +235,7 @@ export default function CreateCredentialRequestModal({
                         >
                             <div className="flex items-center gap-2">
                                 <div className="w-1 h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
+                                <Building2 className="w-5 h-5" />
                                 <h3 className="text-lg font-semibold text-slate-800">
                                     Issuer Information
                                 </h3>
@@ -283,6 +293,7 @@ export default function CreateCredentialRequestModal({
                         >
                             <div className="flex items-center gap-2">
                                 <div className="w-1 h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
+                                <FileText className="w-5 h-5" />
                                 <h3 className="text-lg font-semibold text-slate-800">
                                     Schema Details
                                 </h3>
@@ -365,6 +376,7 @@ export default function CreateCredentialRequestModal({
                         >
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="h-6 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600" />
+                                <Clock className="w-5 h-5" />
                                 <h3 className="text-lg font-semibold text-slate-800">
                                     Expiration
                                 </h3>

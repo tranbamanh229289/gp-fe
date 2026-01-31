@@ -1,4 +1,4 @@
-import { QueryValueType } from "@/types/credential_zkproof";
+import { QueryValueType } from "@/types/credential_proof";
 import { Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";

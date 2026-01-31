@@ -7,7 +7,6 @@ import { useCredentialRequestStore } from "@/store/credential_request.store";
 import { CredentialRequest } from "@/types/credential_request";
 import { motion } from "framer-motion";
 import {
-    CheckCircle,
     XCircle,
     User,
     Calendar,
@@ -19,8 +18,9 @@ import {
     ExternalLink,
     Timer,
     EyeIcon,
+    FileText,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ReviewCredentialRequestModal } from "./modal/IssueVerifiableCredentialModal";
 import { RejectCredentialRequestModal } from "./modal/RejectCredentialRequestModal";
 import { formatDate, isExpired } from "@/helper/dateTime";
@@ -45,19 +45,27 @@ export default function CredentialRequests({
     );
 
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCredentialRequest, setSelectedCredentialRequest] =
-        useState<CredentialRequest | null>(null);
     const [filterStatus, setFilterStatus] = useState<
         CredentialRequestStatus | "all"
     >("all");
-    const filteredRequests = credentialRequests.filter((req) => {
-        const matchesSearch =
-            req.holderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            req.schemaTitle.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter =
-            filterStatus === "all" || req.status === filterStatus;
-        return matchesSearch && matchesFilter;
-    });
+
+    const [selectedCredentialRequest, setSelectedCredentialRequest] =
+        useState<CredentialRequest | null>(null);
+
+    const filteredRequests = useMemo(() => {
+        return credentialRequests.filter((req) => {
+            const matchesSearch =
+                req.holderName
+                    .toLowerCase()
+                    .includes(searchTerm.toLowerCase()) ||
+                req.schemaTitle
+                    .toLowerCase()
+                    .includes(searchTerm.toLowerCase());
+            const matchesFilter =
+                filterStatus === "all" || req.status === filterStatus;
+            return matchesSearch && matchesFilter;
+        });
+    }, [credentialRequests, searchTerm, filterStatus]);
 
     const handleReject = async () => {
         try {
@@ -69,6 +77,7 @@ export default function CredentialRequests({
             console.log(err);
         }
     };
+
     useEffect(() => {
         getCredentialRequests();
     }, []);
@@ -92,16 +101,16 @@ export default function CredentialRequests({
                     </div>
                 </div>
                 {/* Search & Filter Bar */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-200/50 shadow-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
                                 placeholder="Search by holder name or schema..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 outline-none bg-white"
                             />
                         </div>
 
@@ -138,34 +147,34 @@ export default function CredentialRequests({
                     </div>
                 </div>
 
-                {/* Requests List */}
-                <div className="space-y-4">
+                {/* Requests Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredRequests.length === 0 ? (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="text-center py-20 bg-white rounded-xl border-2 border-dashed border-gray-300"
+                            className="col-span-full text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg"
                         >
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                                <AlertCircle className="w-8 h-8 text-gray-400" />
+                            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 flex items-center justify-center">
+                                <AlertCircle className="w-10 h-10 text-gray-400" />
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
                                 No Requests Found
                             </h3>
                             <p className="text-sm text-gray-600">
                                 {searchTerm || filterStatus !== "all"
-                                    ? "Try adjusting your filters"
-                                    : "Credential requests will appear here"}
+                                    ? "Try adjusting your filters to see more results"
+                                    : "Credential requests will appear here when submitted"}
                             </p>
                         </motion.div>
                     ) : (
                         filteredRequests.map((request, index) => {
                             const config =
                                 credentialTypeConfig[request.documentType];
-
                             const expired = isExpired(request.expiresTime);
                             let statusConfig =
                                 credentialStatusConfig[request.status];
+
                             if (
                                 expired &&
                                 request.status ===
@@ -176,203 +185,167 @@ export default function CredentialRequests({
                                         CredentialRequestStatus.Expired
                                     ];
                             }
+
                             const StatusIcon = statusConfig.icon;
 
                             return (
                                 <motion.div
                                     key={request.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: index * 0.05 }}
-                                    whileHover={{
-                                        y: -2,
-                                        boxShadow:
-                                            "0 12px 24px -8px rgba(0,0,0,0.12)",
-                                    }}
-                                    className="bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-300 transition-all duration-200 overflow-hidden"
+                                    whileHover={{ y: -4 }}
+                                    className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 hover:shadow-xl transition-all duration-300 group"
                                 >
-                                    <div className="p-6">
-                                        {/* Top Row: Icon, Title, Status */}
-                                        <div className="flex items-start gap-5 mb-5">
-                                            {/* Icon */}
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-3">
                                             <div
-                                                className={`w-14 h-14 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-sm flex-shrink-0`}
+                                                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
                                             >
-                                                <config.icon className="w-7 h-7 text-white" />
+                                                <config.icon className="w-6 h-6 text-white" />
                                             </div>
-
-                                            {/* Title & Badges */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-3 flex-wrap mb-2">
-                                                    <h3 className="text-xl font-bold text-gray-900">
-                                                        {config.label}
-                                                    </h3>
-                                                    <span
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 ${statusConfig.color} flex items-center gap-1.5`}
-                                                    >
-                                                        <StatusIcon className="w-3.5 h-3.5" />
-                                                        {request.status}
-                                                    </span>
-
-                                                    {expired && (
-                                                        <span className="px-3 py-1 bg-rose-100 text-rose-700 text-xs rounded-lg font-bold border border-rose-300">
-                                                            Expired
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Holder Info */}
-                                                <div className="flex items-center gap-2 text-sm flex-wrap">
-                                                    <User className="w-4 h-4 text-gray-500" />
-                                                    <span className="font-semibold text-gray-700">
-                                                        {request.holderName}
-                                                    </span>
-                                                    <span className="text-gray-400">
-                                                        •
-                                                    </span>
-                                                    <code className="text-xs font-mono text-slate-500 max-w-md">
-                                                        {request.issuerDID}
-                                                    </code>
-                                                </div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-900">
+                                                    {request.holderName}
+                                                </h3>
+                                                <p className="text-xs text-gray-500 font-medium">
+                                                    {config.label}
+                                                </p>
                                             </div>
-
-                                            {/* Actions - Desktop */}
-                                            {request.status ===
-                                                CredentialRequestStatus.Pending && (
-                                                <div className=" flex flex gap-2 flex-shrink-0">
-                                                    <motion.button
-                                                        whileHover={{
-                                                            scale: 1.05,
-                                                        }}
-                                                        whileTap={{
-                                                            scale: 0.95,
-                                                        }}
-                                                        onClick={() => {
-                                                            setSelectedCredentialRequest(
-                                                                request,
-                                                            );
-                                                            setShowModal(
-                                                                IssuerModal.ReviewCredentialRequest,
-                                                            );
-                                                        }}
-                                                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
-                                                    >
-                                                        <EyeIcon className="w-4 h-4" />
-                                                        Review
-                                                    </motion.button>
-
-                                                    <motion.button
-                                                        whileHover={{
-                                                            scale: 1.05,
-                                                        }}
-                                                        whileTap={{
-                                                            scale: 0.95,
-                                                        }}
-                                                        onClick={() => {
-                                                            setSelectedCredentialRequest(
-                                                                request,
-                                                            );
-                                                            setShowModal(
-                                                                IssuerModal.RejectCredentialRequest,
-                                                            );
-                                                        }}
-                                                        className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
-                                                    >
-                                                        <XCircle className="w-4 h-4" />
-                                                        Reject
-                                                    </motion.button>
-                                                </div>
+                                        </div>
+                                        <div className="flex flex-col gap-2 items-end">
+                                            <span
+                                                className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1.5 ${statusConfig.color}`}
+                                            >
+                                                <StatusIcon className="w-3 h-3" />
+                                                {request.status}
+                                            </span>
+                                            {expired && (
+                                                <span className="px-3 py-1 bg-rose-100 text-rose-700 text-xs rounded-full font-bold border border-rose-300">
+                                                    Expired
+                                                </span>
                                             )}
                                         </div>
+                                    </div>
 
-                                        {/* Schema Info */}
-                                        <div className="mb-5 p-4 rounded-xl bg-purple-50 border border-purple-200">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">
-                                                    Schema
-                                                </span>
+                                    {/* Info Fields */}
+                                    <div className="space-y-2 mb-4">
+                                        {/* Schema */}
+                                        <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100">
+                                            <span className="text-sm text-gray-600 font-medium flex items-center gap-2">
+                                                <FileText className="w-4 h-4 text-purple-600" />
+                                                Schema:
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <code className="text-xs font-mono text-purple-900 bg-purple-50 px-2 py-1 rounded border border-purple-200">
+                                                    {request.schemaType}
+                                                </code>
+
                                                 <a
                                                     href={request.schemaURL}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-semibold transition-colors group"
+                                                    className="text-purple-600 hover:text-purple-800"
                                                     onClick={(e) =>
                                                         e.stopPropagation()
                                                     }
                                                 >
-                                                    View Details
-                                                    <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                                    <ExternalLink className="w-3.5 h-3.5" />
                                                 </a>
                                             </div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <p className="text-sx font-semibold text-slate-900 mb-1">
-                                                    {request.schemaTitle}
-                                                </p>
-                                                <code className="text-sx font-mono text-purple-700 bg-white px-2 py-1 rounded border border-purple-300 inline-block">
-                                                    {request.schemaType}
-                                                </code>
-                                            </div>
+                                        </div>
+                                        {/* Valid Until */}
+                                        <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
+                                            <span className="text-sm text-gray-600 font-medium flex items-center gap-2">
+                                                <Clock className="w-4 h-4 text-blue-600" />
+                                                Valid Until:
+                                            </span>
+                                            <span className="text-sm font-semibold text-gray-900 text-right">
+                                                {formatDate(request.expiration)}
+                                            </span>
                                         </div>
 
-                                        <div className="grid grid-cols-3 gap-4">
-                                            {/* Created */}
-                                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Calendar className="w-4 h-4 text-slate-500" />
-                                                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
-                                                        Created
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm font-semibold text-slate-900">
+                                        {/* Created & Expires - Same Row */}
+                                        <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100">
+                                            {/* Created - Left */}
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="w-4 h-4 text-slate-500" />
+                                                <span className="text-sm text-gray-600 font-medium">
+                                                    Created:
+                                                </span>
+                                                <span className="text-sm font-semibold text-gray-900">
                                                     {formatDate(
                                                         request.createdTime,
                                                     )}
-                                                </p>
+                                                </span>
                                             </div>
 
-                                            {/* Expires */}
-                                            <div
-                                                className={`p-3 rounded-xl border ${
-                                                    expired
-                                                        ? "bg-rose-50 border-rose-200"
-                                                        : "bg-slate-50 border-slate-200"
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Timer className="w-4 h-4 text-slate-500" />
-                                                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
-                                                        Expires
-                                                    </span>
-                                                </div>
-                                                <p
+                                            {/* Expires - Right */}
+                                            <div className="flex items-center gap-2">
+                                                <Timer
+                                                    className={`w-4 h-4 ${
+                                                        expired
+                                                            ? "text-rose-600"
+                                                            : "text-amber-600"
+                                                    }`}
+                                                />
+                                                <span className="text-sm text-gray-600 font-medium">
+                                                    Expires:
+                                                </span>
+                                                <span
                                                     className={`text-sm font-semibold ${
                                                         expired
                                                             ? "text-rose-700"
-                                                            : "text-slate-900"
+                                                            : "text-gray-900"
                                                     }`}
                                                 >
                                                     {formatDate(
                                                         request.expiresTime,
                                                     )}
-                                                </p>
-                                            </div>
-
-                                            {/* Validity */}
-                                            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Clock className="w-4 h-4 text-blue-600" />
-                                                    <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">
-                                                        Validity
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm font-semibold text-slate-900">
-                                                    {formatDate(
-                                                        request.expiration,
-                                                    )}{" "}
-                                                </p>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Actions */}
+                                    {request.status ===
+                                        CredentialRequestStatus.Pending &&
+                                        !expired && (
+                                            <div className="flex gap-2">
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => {
+                                                        setSelectedCredentialRequest(
+                                                            request,
+                                                        );
+                                                        setShowModal(
+                                                            IssuerModal.ReviewCredentialRequest,
+                                                        );
+                                                    }}
+                                                    className="flex-1 px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <EyeIcon className="w-4 h-4" />
+                                                    Review
+                                                </motion.button>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => {
+                                                        setSelectedCredentialRequest(
+                                                            request,
+                                                        );
+                                                        setShowModal(
+                                                            IssuerModal.RejectCredentialRequest,
+                                                        );
+                                                    }}
+                                                    className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold transition-colors"
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                </motion.button>
+                                            </div>
+                                        )}
                                 </motion.div>
                             );
                         })

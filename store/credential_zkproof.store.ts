@@ -2,19 +2,19 @@ import { ProofRequestStatus } from "@/constants/credential_zkproof";
 import { randomIntSecure } from "@/helper/randomBit";
 import axiosInstance from "@/lib/axios";
 import { createProofService } from "@/services/proof.service";
-import { ZKProof } from "@/types/auth_zkproof";
+import { ZKProof } from "@/types/zkproof";
 
 import {
     AuthorizationRequest,
     ProofRequest,
-    ProofResponse,
-} from "@/types/credential_zkproof";
+    ProofSubmission,
+} from "@/types/credential_proof";
 import { protocol } from "@iden3/js-iden3-auth";
 import { create } from "zustand";
 
 export interface CredentialZKProofStore {
     proofRequests: ProofRequest[];
-    proofResponses: ProofResponse[];
+    proofSubmissions: ProofSubmission[];
     loading: boolean;
     error: string;
 
@@ -27,19 +27,21 @@ export interface CredentialZKProofStore {
     generateCredentialAtomicQueryV3Proof: (
         proofRequestId: string,
         credentialId: string,
-    ) => Promise<void>;
-    proveCredentialAtomicQueryV3Proof: (
+        scopeId: number,
+    ) => Promise<ZKProof>;
+    submitZkProof: (
         holderDID: string,
         request: ProofRequest,
         proof: ZKProof,
     ) => Promise<void>;
-    getAllZkProofResponses: () => Promise<void>;
+    verifyZkProof: (id: string) => Promise<void>;
+    getAllZkProofSubmissions: () => Promise<void>;
 }
 
 export const useCredentialZKProofStore = create<CredentialZKProofStore>(
     (set, get) => ({
         proofRequests: [],
-        proofResponses: [],
+        proofSubmissions: [],
 
         loading: false,
         error: "",
@@ -47,9 +49,10 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
         createZkProofRequest: async (authReq: AuthorizationRequest) => {
             set({ loading: true });
             try {
+                const scopeId = randomIntSecure(2 ** 32);
                 const scopes: protocol.ZeroKnowledgeProofRequest[] = [
                     {
-                        id: randomIntSecure(2 ^ 32),
+                        id: scopeId,
                         circuitId: authReq.circuitId,
                         query: authReq.query,
                         params: authReq.params,
@@ -73,10 +76,10 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
                 };
 
                 const res = await axiosInstance.post<{ data: ProofRequest }>(
-                    "/proofs/request",
+                    "/proofs/requests",
                     req,
                 );
-                console.log(res);
+
                 set((state) => {
                     return {
                         ...state,
@@ -98,7 +101,7 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
         ) => {
             set({ loading: true });
             try {
-                await axiosInstance.patch(`/proofs/request/${id}`, {
+                await axiosInstance.patch(`/proofs/requests/${id}`, {
                     status: status,
                 });
                 set((state) => {
@@ -126,7 +129,7 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
             set({ loading: true });
             try {
                 const res = await axiosInstance.get<{ data: ProofRequest[] }>(
-                    "/proofs/request",
+                    "/proofs/requests",
                 );
                 set({ proofRequests: res.data.data ?? [] });
             } catch (err) {
@@ -140,31 +143,31 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
         generateCredentialAtomicQueryV3Proof: async (
             proofRequestId: string,
             credentialId: string,
-        ): Promise<void> => {
+            scopeId: number,
+        ): Promise<ZKProof> => {
             set({ loading: true });
 
             try {
                 const proofService = await createProofService();
-                const request = { proofRequestId, credentialId };
+                const request = { proofRequestId, credentialId, scopeId };
                 const inputs = await axiosInstance.post(
                     "/circuits/credentialAtomicQueryV3",
                     request,
                 );
-                console.log(inputs);
 
                 const { proof, publicSignals } =
                     await proofService.generateCredentialAtomicQueryV3Input(
                         inputs.data.data,
                     );
-
                 set({ loading: false });
+                return { proof: proof, pub_signals: publicSignals };
             } catch (err) {
                 set({ error: "call_failed", loading: false });
                 throw err;
             }
         },
 
-        proveCredentialAtomicQueryV3Proof: async (
+        submitZkProof: async (
             holderDID: string,
             proofRequest: ProofRequest,
             proof: ZKProof,
@@ -178,6 +181,7 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
             };
             const responseMessage: protocol.AuthorizationResponseMessage = {
                 id: proofRequest.threadId,
+                thid: proofRequest.threadId,
                 type: protocol.PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
                     .AUTHORIZATION_RESPONSE_MESSAGE_TYPE,
                 from: holderDID,
@@ -186,17 +190,18 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
                     scope: [scope],
                     message: proofRequest.message,
                 },
+                created_time: Math.floor(Date.now() / 1000),
+                expires_time: Math.floor(Date.now() / 1000) + 24 * 3600,
             };
             try {
-                const resp = await axiosInstance.post<{ data: ProofResponse }>(
-                    "/proofs/verify",
-                    responseMessage,
-                );
+                const resp = await axiosInstance.post<{
+                    data: ProofSubmission;
+                }>("/proofs/submissions", responseMessage);
                 set((state) => {
                     return {
                         ...state,
                         proofResponses: [
-                            ...state.proofResponses,
+                            ...state.proofSubmissions,
                             resp.data.data,
                         ],
                     };
@@ -210,16 +215,44 @@ export const useCredentialZKProofStore = create<CredentialZKProofStore>(
             }
         },
 
-        getAllZkProofResponses: async () => {
+        verifyZkProof: async (id: string) => {
             set({ loading: true });
             try {
-                const res = await axiosInstance.get<{ data: ProofResponse[] }>(
-                    "/proofs/response",
-                );
-                set({ proofResponses: res.data.data });
+                const res = await axiosInstance.patch<{
+                    data: ProofSubmission;
+                }>(`/proofs/submissions/${id}`);
+
+                set((state) => {
+                    return {
+                        ...state,
+                        proofSubmissions: state.proofSubmissions.map((item) => {
+                            if (item.id !== id) {
+                                return item;
+                            } else {
+                                return { ...item, ...res.data.data };
+                            }
+                        }),
+                    };
+                });
+                await new Promise((resolve) => setTimeout(resolve, 2000));
             } catch (err) {
                 set({ error: "call_failed" });
                 throw err;
+            } finally {
+                set({ loading: false });
+            }
+        },
+
+        getAllZkProofSubmissions: async () => {
+            set({ loading: true });
+            try {
+                const res = await axiosInstance.get<{
+                    data: ProofSubmission[];
+                }>("/proofs/submissions");
+
+                set({ proofSubmissions: res.data.data ?? [] });
+            } catch (err) {
+                set({ error: "call_failed" });
             } finally {
                 set({ loading: false });
             }

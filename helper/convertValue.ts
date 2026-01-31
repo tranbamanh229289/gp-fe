@@ -27,7 +27,19 @@ export const convertValue = (value: any, targetType: string): number => {
             return scaled;
         }
         case "datetime": {
-            const d = new Date(value);
+            if (value === null || value === undefined) {
+                throw new Error(`Invalid datetime value: ${value}`);
+            }
+
+            let d: Date;
+
+            if (typeof value === "string") {
+                d = new Date(value);
+            } else if (typeof value === "number") {
+                d = new Date(value * 1000);
+            } else {
+                throw new Error(`Unsupported datetime type: ${typeof value}`);
+            }
             if (Number.isNaN(d.getTime())) {
                 throw new Error(`Invalid datetime value: ${value}`);
             }

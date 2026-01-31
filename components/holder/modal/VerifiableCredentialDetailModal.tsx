@@ -5,14 +5,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy, Download, Shield, X } from "lucide-react";
 import { useState } from "react";
 
-interface VerifiableCredentialDetailModalProp {
+interface VerifiableCredentialDetailProp {
     selectedCredential: W3CCredential;
     onClose: () => void;
 }
-export default function VerifiableCredentialDetailModal({
+export default function VerifiableCredentialDetail({
     selectedCredential,
     onClose,
-}: VerifiableCredentialDetailModalProp) {
+}: VerifiableCredentialDetailProp) {
     const downloadVerifiableCredential = () => {
         const blob = new Blob([JSON.stringify(selectedCredential)], {
             type: "text/plain",

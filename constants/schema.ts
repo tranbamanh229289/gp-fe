@@ -12,6 +12,15 @@ export enum Slot {
     SlotDataB = "slotDataB",
 }
 
+export const schemaStatusConfig = {
+    [SchemaStatus.Active]: {
+        color: "bg-emerald-100 text-emerald-700 border-emerald-300",
+    },
+    [SchemaStatus.Revoked]: {
+        color: "bg-red-100 text-red-700 border-red-300",
+    },
+};
+
 export const attributesTypes = [
     "string",
     "integer",

@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import abi from "../abi/stateABI.json";
 import { Wallet } from "ethers";
-import { MerkleTreeProof } from "@/types/auth_zkproof";
+import { MerkleTreeProof } from "@/types/zkproof";
 
 export class StateService {
     private provider: ethers.Provider;
@@ -17,7 +17,7 @@ export class StateService {
         this.stateContract = new ethers.Contract(
             STATE_CONTRACT,
             abi,
-            this.provider
+            this.provider,
         );
     }
 
@@ -34,7 +34,7 @@ export class StateService {
             throw new Error(
                 `Failed to get GIST root: ${
                     error instanceof Error ? error.message : String(error)
-                }`
+                }`,
             );
         }
     }
@@ -52,7 +52,7 @@ export class StateService {
             throw new Error(
                 `Failed to get GIST proof for id ${id}: ${
                     error instanceof Error ? error.message : String(error)
-                }`
+                }`,
             );
         }
     }
@@ -74,7 +74,7 @@ export class StateService {
                 replacedByState: BigInt(info.replacedByState.toString()),
                 createdAtTimestamp: BigInt(info.createdAtTimestamp.toString()),
                 replacedAtTimestamp: BigInt(
-                    info.replacedAtTimestamp.toString()
+                    info.replacedAtTimestamp.toString(),
                 ),
                 createdAtBlock: BigInt(info.createdAtBlock.toString()),
                 replacedAtBlock: BigInt(info.replacedAtBlock.toString()),
@@ -83,7 +83,7 @@ export class StateService {
             throw new Error(
                 `Failed to get state info: ${
                     error instanceof Error ? error.message : String(error)
-                }`
+                }`,
             );
         }
     }

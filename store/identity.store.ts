@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 import axiosInstance from "@/lib/axios";
 import { AuthRole } from "@/constants/auth";
 import { Identity, LoginResponse, RefreshTokenResponse } from "@/types/auth";
-import { ZKProof } from "@/types/auth_zkproof";
+import { ZKProof } from "@/types/zkproof";
 import { useAuthZkProofStore } from "./auth_zkproof.store";
 
 interface IdentityStore {

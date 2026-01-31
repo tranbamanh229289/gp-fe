@@ -17,10 +17,7 @@ import {
     Settings,
     Zap,
 } from "lucide-react";
-import {
-    AuthorizationRequest,
-    QueryCondition,
-} from "@/types/credential_zkproof";
+import { AuthorizationRequest, QueryCondition } from "@/types/credential_proof";
 import { useIdentityStore } from "@/store/identity.store";
 import { Identity } from "@/types/auth";
 import { AuthRole } from "@/constants/auth";

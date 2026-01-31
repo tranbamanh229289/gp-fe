@@ -36,7 +36,7 @@ export default function Overview({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
+            className="space-y-6 min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
         >
             {/* Header */}
             <div>
@@ -52,7 +52,7 @@ export default function Overview({
             <div className="grid grid-cols-4 gap-6">
                 {[
                     {
-                        label: "Total Records",
+                        label: "Total Documents",
                         value: total(),
                         icon: FileText,
                         gradient: "from-blue-500 to-cyan-500",

@@ -3,6 +3,7 @@ export enum VerifierModal {
     CreateProofRequest = "create_proof_request",
     DeleteProofRequest = "delete_proof_request",
     ProofRequestDetail = "proof_request_detail",
+    ProofSubmissionDetail = "proof_submission_detail",
 }
 
 export enum VerifierActiveTab {

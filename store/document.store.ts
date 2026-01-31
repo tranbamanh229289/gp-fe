@@ -95,13 +95,11 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
             const res = await axiosInstance.get<{
                 data: DocumentData;
             }>(`documents/${holderDID}`, { params: { documentType: type } });
-
+            set({ loading: false });
             return res.data.data;
         } catch (err) {
-            set({ error: "fetch_err" });
+            set({ loading: false, error: "fetch_err" });
             throw err;
-        } finally {
-            set({ loading: false });
         }
     },
 

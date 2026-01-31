@@ -20,7 +20,7 @@ interface CredentialRequestStore {
     createCredentialRequest: (data: CredentialIssuanceRequest) => Promise<void>;
     updateCredentialRequest: (
         id: string,
-        status: CredentialRequestStatus
+        status: CredentialRequestStatus,
     ) => Promise<void>;
     getCredentialRequests: () => Promise<void>;
 }
@@ -82,7 +82,7 @@ export const useCredentialRequestStore = create<CredentialRequestStore>(
 
         updateCredentialRequest: async (
             id: string,
-            status: CredentialRequestStatus
+            status: CredentialRequestStatus,
         ) => {
             set({ loading: true });
             try {
@@ -99,7 +99,7 @@ export const useCredentialRequestStore = create<CredentialRequestStore>(
                                 } else {
                                     return { ...item, status: status };
                                 }
-                            }
+                            },
                         ),
                     };
                 });
@@ -125,5 +125,5 @@ export const useCredentialRequestStore = create<CredentialRequestStore>(
                 set({ loading: true });
             }
         },
-    })
+    }),
 );

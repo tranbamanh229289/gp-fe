@@ -25,7 +25,8 @@ import { Hash, InMemoryDB, Merkletree, str2Bytes } from "@iden3/js-merkletree";
 import { Signature } from "@zk-kit/eddsa-poseidon";
 import { StateService } from "./state.service";
 
-import { MerkleTreeProof } from "@/types/auth_zkproof";
+import { MerkleTreeProof } from "@/types/zkproof";
+import { formToJSON } from "axios";
 
 class MTService {
     private wallet: BabyJubWallet;

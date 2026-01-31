@@ -2,6 +2,7 @@ export enum HolderActiveTab {
     VerifiableCredentials = "verifiable_credentials",
     CredentialRequests = "credential_requests",
     ProofRequests = "proof_requests",
+    ProofSubmissions = "proof_submissions",
 }
 
 export enum HolderModal {
@@ -11,4 +12,5 @@ export enum HolderModal {
     ProofRequestDetail = "proof_request_detail",
     GenerateProof = "generate_proof",
     VerifiableCredentialDetail = "verifiable_credential_detail",
+    ProofSubmissionDetail = "proof_submission_detail",
 }

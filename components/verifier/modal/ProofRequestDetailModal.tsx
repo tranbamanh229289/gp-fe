@@ -1,6 +1,9 @@
-import { proofRequestStatusConfig } from "@/constants/credential_zkproof";
+import {
+    proofRequestStatusConfig,
+    proofTypeConfig,
+} from "@/constants/credential_zkproof";
 import { formatDate, isExpired } from "@/helper/dateTime";
-import { ProofRequest } from "@/types/credential_zkproof";
+import { ProofRequest } from "@/types/credential_proof";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Calendar,
@@ -197,9 +200,16 @@ export default function ProofRequestDetailModal({
                                         <span className="text-xs text-indigo-600 font-semibold uppercase tracking-wide">
                                             Context URL
                                         </span>
-                                        <code className="text-xs font-mono text-gray-900 break-all block mt-0.5">
-                                            {selectedRequest.context}
-                                        </code>
+                                        <p>
+                                            <a
+                                                href={selectedRequest.context}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="font-mono text-xs text-indigo-600 hover:text-indigo-800 break-all hover:underline"
+                                            >
+                                                {selectedRequest.context}
+                                            </a>
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -227,9 +237,16 @@ export default function ProofRequestDetailModal({
                                         <span className="text-xs text-indigo-600 font-semibold uppercase tracking-wide">
                                             Proof Type
                                         </span>
-                                        <code className="text-xs font-mono text-indigo-700 bg-indigo-100 px-2 py-1 rounded inline-block mt-1">
-                                            {selectedRequest.proofType}
-                                        </code>
+                                        <p>
+                                            <code className="text-xs font-mono text-indigo-700 bg-indigo-100 px-2 py-1 rounded inline-block mt-1">
+                                                {
+                                                    proofTypeConfig[
+                                                        selectedRequest
+                                                            .proofType
+                                                    ].label
+                                                }
+                                            </code>
+                                        </p>
                                     </div>
                                 </div>
                             </div>

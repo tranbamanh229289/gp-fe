@@ -49,6 +49,7 @@ export const useVerifiableCredential = create<VerifiableCredentialStore>(
                 );
 
                 const signature = mtService.signClaim(coreClaim);
+
                 const request = {
                     isMerklized: credentialRequest.isMerklized,
                     credentialSubject: vc.credentialSubject,

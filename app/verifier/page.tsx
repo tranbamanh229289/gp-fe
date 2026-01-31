@@ -4,14 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Shield,
-    Eye,
     CheckCircle,
     Clock,
     Plus,
     TrendingUp,
     Users,
     FileCheck,
-    Search,
     LogOut,
     Check,
     Copy,
@@ -21,14 +19,15 @@ import {
 import { VerifierActiveTab, VerifierModal } from "@/constants/verifier";
 
 import ProofRequests from "@/components/verifier/ProofRequests";
-import Submissions from "@/components/verifier/Submissions";
+import Submissions from "@/components/verifier/ProofSubmissions";
 import CreateProofRequestModal from "@/components/verifier/modal/CreateProofRequestModal";
 import { useIdentityStore } from "@/store/identity.store";
 import { useRouter } from "next/navigation";
+import ProofSubmissions from "@/components/verifier/ProofSubmissions";
 
 export default function VerifierDashboard() {
     const [activeTab, setActiveTab] = useState<VerifierActiveTab>(
-        VerifierActiveTab.ProofRequests
+        VerifierActiveTab.ProofRequests,
     );
     const [modal, setModal] = useState<VerifierModal>(VerifierModal.Null);
     const router = useRouter();
@@ -183,7 +182,7 @@ export default function VerifierDashboard() {
                                                             onClick={() =>
                                                                 copyToClipboard(
                                                                     identity?.did as string,
-                                                                    "did"
+                                                                    "did",
                                                                 )
                                                             }
                                                             className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
@@ -213,7 +212,7 @@ export default function VerifierDashboard() {
                                                             onClick={() =>
                                                                 copyToClipboard(
                                                                     identity?.state as string,
-                                                                    "state"
+                                                                    "state",
                                                                 )
                                                             }
                                                             className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
@@ -329,7 +328,7 @@ export default function VerifierDashboard() {
                             },
                             {
                                 id: VerifierActiveTab.Submissions,
-                                label: "Submissions",
+                                label: "Proof Submissions",
                                 icon: Clock,
                             },
                         ].map((tab) => (
@@ -371,7 +370,10 @@ export default function VerifierDashboard() {
                     )}
                     {/* Submissions */}
                     {activeTab === VerifierActiveTab.Submissions && (
-                        <Submissions />
+                        <ProofSubmissions
+                            showModal={modal}
+                            setShowModal={setModal}
+                        />
                     )}
                 </AnimatePresence>
             </div>

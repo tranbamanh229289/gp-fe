@@ -1,8 +1,8 @@
 import axiosInstance from "@/lib/axios";
 import { createMTService } from "@/services/mt.service";
 import { createProofService } from "@/services/proof.service";
-import { Challenge, Identity, LoginResponse } from "@/types/auth";
-import { ZKProof } from "@/types/auth_zkproof";
+import { Challenge, LoginResponse } from "@/types/auth";
+import { ZKProof } from "@/types/zkproof";
 import { protocol } from "@iden3/js-iden3-auth";
 import { create } from "zustand";
 
@@ -21,10 +21,7 @@ interface AuthZkProofStore {
 
     proveAuthV3Proof: (proof: ZKProof) => Promise<LoginResponse>;
     requestChallenge: () => Promise<void>;
-    generateAuthV3Proof: (privateKey: string) => Promise<{
-        proof: snarkjs.Groth16Proof;
-        publicSignals: snarkjs.PublicSignals;
-    }>;
+    generateAuthV3Proof: (privateKey: string) => Promise<ZKProof>;
     cancel: () => void;
 }
 
@@ -60,6 +57,7 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
 
             const resp: protocol.AuthorizationResponseMessage = {
                 id: requestID,
+                thid: requestID,
                 type: protocol.PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
                     .AUTHORIZATION_RESPONSE_MESSAGE_TYPE,
                 from: senderDID,
@@ -73,22 +71,17 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
             const res = await axiosInstance.post<{
                 data: LoginResponse;
             }>(callbackURL, resp);
-            set({ isVerified: true });
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            set({ loading: false, isVerified: true });
+
             return res.data.data;
         } catch (err: any) {
-            set({ error: err.message, isVerified: false });
+            set({ loading: false, error: err.message, isVerified: false });
             throw err;
-        } finally {
-            set({ loading: false });
         }
     },
 
-    generateAuthV3Proof: async (
-        privateKey: string,
-    ): Promise<{
-        proof: snarkjs.Groth16Proof;
-        publicSignals: snarkjs.PublicSignals;
-    }> => {
+    generateAuthV3Proof: async (privateKey: string): Promise<ZKProof> => {
         set({ loading: true });
         try {
             const proofService = await createProofService();
@@ -106,8 +99,10 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
 
             const { proof, publicSignals } =
                 await proofService.generateAuthV3ZKProof(inputs);
+            await new Promise((resolve) => setTimeout(resolve, 2000));
             set({ loading: false });
-            return { proof, publicSignals };
+
+            return { proof: proof, pub_signals: publicSignals };
         } catch (err: any) {
             console.error("Generate proof failed:", err);
             const errorMsg = err.message?.includes("BigInt")

@@ -1,10 +1,15 @@
-import { Operator, ProofRequestStatus } from "@/constants/credential_zkproof";
+import {
+    Operator,
+    ProofRequestStatus,
+    ProofSubmissionStatus,
+} from "@/constants/credential_zkproof";
 import {
     CircuitId,
     JsonDocumentObject,
     ProofType,
     ZeroKnowledgeProofQuery,
 } from "@0xpolygonid/js-sdk";
+import { ZKProof } from "./zkproof";
 
 export interface ProofRequest {
     id: string;
@@ -30,12 +35,24 @@ export interface ProofRequest {
     createdTime: number;
 }
 
-export interface ProofResponse {
-    requestId: string;
+export interface ProofSubmission {
+    id: string;
     threadId: string;
+    requestId: string;
     holderDID: string;
-    verifiedAt: string;
+    holderName: string;
+    verifierDID: string;
+    verifierName: string;
+    circuitId: string;
+    scopeId: string;
+    message: string;
+    zkProof: ZKProof;
+    createdTime: number;
+    expiresTime: number;
+    status: ProofSubmissionStatus;
+    verifiedDate: string;
 }
+
 export interface AuthorizationRequest {
     verifierDID: string;
     callback: string;
