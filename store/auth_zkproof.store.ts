@@ -96,9 +96,10 @@ export const useAuthZkProofStore = create<AuthZkProofStore>()((set, get) => ({
             const inputs = await mtService.getAuthV3CircuitInput(
                 challengeBigInt,
             );
-
+            console.time("generate proof");
             const { proof, publicSignals } =
                 await proofService.generateAuthV3ZKProof(inputs);
+            console.timeEnd("generate proof");
             await new Promise((resolve) => setTimeout(resolve, 2000));
             set({ loading: false });
 
